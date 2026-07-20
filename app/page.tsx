@@ -1,65 +1,128 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
+
+function toSlug(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
+}
 
 export default function Home() {
+  const [createName, setCreateName] = useState("");
+  const [joinSlug, setJoinSlug] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  async function create() {
+    const trimmed = createName.trim();
+    if (!trimmed) return;
+
+    const slug = toSlug(trimmed);
+    if (!slug) {
+      setError("Bitte nur Buchstaben und Zahlen verwenden.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    const { error: insertError } = await supabase.from("courts").insert({
+      name: trimmed,
+      slug,
+      min_people: 2,
+    });
+
+    if (insertError) {
+      setError(insertError.message);
+      setSaving(false);
+      return;
+    }
+
+    router.push(`/${slug}`);
+  }
+
+  function join() {
+    const slug = joinSlug.trim();
+    if (!slug) return;
+    router.push(`/${slug}`);
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="flex h-dvh items-center justify-center bg-gray-100 px-4">
+      <div className="w-full max-w-sm space-y-4">
+
+        {/* Logo */}
+        <img
+          src="/icon_1024.png"
+          alt="Court Slots"
+          width={72}
+          height={72}
+          className="mx-auto rounded-2xl shadow-md"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file please.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+        {/* Create */}
+        <div className="rounded-2xl bg-white p-6 shadow-xl">
+          <h2 className="mb-1 text-base font-semibold text-gray-800">
+            Neuen Platz anlegen
+          </h2>
+          <p className="mb-4 text-sm text-gray-500">
+            Gib deinem Platz einen Namen.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          <input
+            autoFocus
+            type="text"
+            placeholder="z. B. Stadtpark Platz 1"
+            value={createName}
+            onChange={(e) => { setCreateName(e.target.value); setError(null); }}
+            onKeyDown={(e) => e.key === "Enter" && create()}
+            className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-lime-400"
+          />
+          {error && (
+            <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+              {error}
+            </p>
+          )}
+          <button
+            onClick={create}
+            disabled={!createName.trim() || saving}
+            className="w-full rounded-lg bg-lime-400 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-lime-300 disabled:opacity-40"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            {saving ? "Erstellen…" : "Platz erstellen"}
+          </button>
         </div>
-      </main>
+
+        {/* Join */}
+        <div className="rounded-2xl bg-white p-6 shadow-xl">
+          <h2 className="mb-1 text-base font-semibold text-gray-800">
+            Bestehenden Platz öffnen
+          </h2>
+          <p className="mb-4 text-sm text-gray-500">
+            Gib den Kurznamen des Platzes ein.
+          </p>
+          <input
+            type="text"
+            placeholder="z. B. stadtpark-platz-1"
+            value={joinSlug}
+            onChange={(e) => setJoinSlug(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && join()}
+            className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-lime-400"
+          />
+          <button
+            onClick={join}
+            disabled={!joinSlug.trim()}
+            className="w-full rounded-lg border border-lime-400 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-lime-50 disabled:opacity-40"
+          >
+            Öffnen
+          </button>
+        </div>
+
+      </div>
     </div>
   );
 }
