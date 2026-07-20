@@ -180,11 +180,7 @@ interface CourtSchedulerProps {
 export default function CourtScheduler({ slots, onDateChange, onAddSlot, username, onSlotTap }: CourtSchedulerProps = {}) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("heute");
-  const [selectedDate, setSelectedDate] = useState<Date>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 2);
-    return d;
-  });
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
 
   const rows = stackSlots(slots || []);
