@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Court Slots",
+  title: "Court",
   description: "Plan your court availability with your friends.",
   icons: {
     icon: "/icon_1024.png",

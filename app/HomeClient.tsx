@@ -60,7 +60,7 @@ export default function HomeClient() {
         {/* Logo */}
         <img
           src="/icon_1024.png"
-          alt="Court Slots"
+          alt="Court"
           width={72}
           height={72}
           className="mx-auto rounded-2xl shadow-md"
