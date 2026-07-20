@@ -1,13 +1,23 @@
-import HomeClient from "./HomeClient";
+"use client";
 
-// Opt out of static prerendering so the Supabase client is only
-// initialised at request time (when env vars are available).
-export const dynamic = "force-dynamic";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
 
-export default function Page() {
-  return <HomeClient />;
+function toSlug(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
 }
 
+export default function HomeClient() {
+  const [createName, setCreateName] = useState("");
+  const [joinSlug, setJoinSlug] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   async function create() {
     const trimmed = createName.trim();
