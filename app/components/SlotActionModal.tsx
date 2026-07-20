@@ -15,8 +15,13 @@ export default function SlotActionModal({ slot, onEdit, onDelete, onClose }: Pro
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center">
-      <div className="w-full max-w-sm rounded-t-2xl bg-white p-6 shadow-xl sm:rounded-2xl">
-        <h2 className="mb-1 text-base font-semibold text-gray-800">{slot.name}</h2>
+      <div
+        className="w-full max-w-sm rounded-t-2xl bg-white p-6 shadow-xl sm:rounded-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="slot-action-modal-title"
+      >
+        <h2 id="slot-action-modal-title" className="mb-1 text-base font-semibold text-gray-800">{slot.name}</h2>
         <p className="mb-5 text-sm text-gray-500">{timeLabel}</p>
         <div className="flex flex-col gap-2">
           <button

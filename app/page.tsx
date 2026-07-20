@@ -1,7 +1,6 @@
 import HomeClient from "./HomeClient";
 
-// Opt out of static prerendering so the Supabase client is only
-// initialised at request time (when env vars are available).
+// Render this route dynamically (avoid static prerendering).
 export const dynamic = "force-dynamic";
 
 export default function Page() {

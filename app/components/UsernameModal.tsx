@@ -13,7 +13,13 @@ export default function UsernameModal({
 }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="w-80 rounded-2xl bg-white p-6 shadow-xl">
+      <div
+        className="w-80 rounded-2xl bg-white p-6 shadow-xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="username-modal-title"
+        aria-describedby="username-modal-desc"
+      >
         <img
           src="/icon_1024.png"
           alt=""
@@ -21,10 +27,10 @@ export default function UsernameModal({
           height={48}
           className="mb-4 rounded-xl"
         />
-        <h2 className="mb-1 text-lg font-semibold text-gray-800">
+        <h2 id="username-modal-title" className="mb-1 text-lg font-semibold text-gray-800">
           Wie heißt du?
         </h2>
-        <p className="mb-4 text-sm text-gray-500">
+        <p id="username-modal-desc" className="mb-4 text-sm text-gray-500">
           Dein Name erscheint auf deinen Verfügbarkeitsslots auf dem Platz{" "}
           <span className="font-medium text-gray-700">{courtName}</span>.
         </p>

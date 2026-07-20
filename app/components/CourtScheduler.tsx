@@ -211,7 +211,14 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, usernam
       {/* ── Top bar ─────────────────────────────────────────────── */}
       <div className="flex shrink-0 items-center gap-2 px-4 pt-4 pb-3">
         <button
-          onClick={() => { setActiveTab("heute"); scrollToNow(); onDateChange?.(new Date()); }}
+          onClick={() => {
+            const today = new Date();
+            setActiveTab("heute");
+            setSelectedDate(today);
+            setCalendarOpen(false);
+            scrollToNow();
+            onDateChange?.(today);
+          }}
           className={[
             "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
             activeTab === "heute"
@@ -224,11 +231,13 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, usernam
 
         <button
           onClick={() => {
-              setActiveTab("morgen");
-              const tomorrow = new Date();
-              tomorrow.setDate(tomorrow.getDate() + 1);
-              onDateChange?.(tomorrow);
-            }}
+            setActiveTab("morgen");
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            setSelectedDate(tomorrow);
+            setCalendarOpen(false);
+            onDateChange?.(tomorrow);
+          }}
           className={[
             "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
             activeTab === "morgen"
@@ -244,7 +253,11 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, usernam
           <button
             onClick={() => {
               setActiveTab("custom");
-              setCalendarOpen((o) => !o);
+              setCalendarOpen((o) => {
+                const next = !o;
+                if (next) onDateChange?.(selectedDate);
+                return next;
+              });
             }}
             className={[
               "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",

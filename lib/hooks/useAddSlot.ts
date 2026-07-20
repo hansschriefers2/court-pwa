@@ -64,8 +64,8 @@ export function useAddSlot({ courtId, username, date, onSuccess, editSlot }: Opt
       }
     }
 
+    setSaving(false);
     onSuccess();
-  }
 
   return { startTime, setStartTime, duration, setDuration, saving, error, submit };
 }
