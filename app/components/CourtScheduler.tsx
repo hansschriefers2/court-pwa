@@ -253,11 +253,7 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, usernam
           <button
             onClick={() => {
               setActiveTab("custom");
-              setCalendarOpen((o) => {
-                const next = !o;
-                if (next) onDateChange?.(selectedDate);
-                return next;
-              });
+              setCalendarOpen((o) => !o);
             }}
             className={[
               "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
