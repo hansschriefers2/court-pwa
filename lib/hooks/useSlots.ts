@@ -8,6 +8,7 @@ import type { TimeSlot } from "@/lib/types";
 interface SlotRow {
   id: string;
   user_name: string;
+  user_id: string;
   start_min: number;
   end_min: number;
   date: string; // YYYY-MM-DD
@@ -17,6 +18,7 @@ function rowToSlot(row: SlotRow): TimeSlot {
   return {
     id: row.id,
     name: row.user_name,
+    userId: row.user_id,
     startMin: row.start_min,
     endMin: row.end_min,
   };
@@ -51,7 +53,7 @@ export function useSlots(courtId: string, username: string | null) {
 
       const { data, error: err } = await supabase
         .from("slots")
-        .select("id, user_name, start_min, end_min, date")
+        .select("id, user_name, user_id, start_min, end_min, date")
         .eq("court_id", courtId)
         .eq("date", localDateStr(date))
         .order("start_min");
@@ -78,6 +80,7 @@ export function useSlots(courtId: string, username: string | null) {
 
   // ── Initial fetch once the user is identified ──────────────────────────────
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchSlots triggers async setLoading/setSlots, not synchronous
     if (username) fetchSlots(new Date());
   }, [username, fetchSlots]);
 
@@ -124,13 +127,18 @@ export function useSlots(courtId: string, username: string | null) {
     return () => {
       supabase.removeChannel(channel);
     };
-    // courtId and username are stable; handler reads date via ref.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courtId, username]);
 
-  function removeSlot(id: string) {
+  /** Delete a slot by UUID. Optimistically removes it from local state; the
+   *  Realtime DELETE event will also fire and is idempotent. */
+  const deleteSlot = useCallback(async (id: string) => {
+    const { error: deleteError } = await supabase.from("slots").delete().eq("id", id);
+    if (deleteError) {
+      console.error(deleteError);
+      return;
+    }
     setSlots((prev) => prev.filter((s) => s.id !== id));
-  }
+  }, []);
 
-  return { slots, loading, error, currentDate, handleDateChange, removeSlot };
+  return { slots, loading, error, currentDate, handleDateChange, deleteSlot };
 }

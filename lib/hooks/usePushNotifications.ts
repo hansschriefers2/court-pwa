@@ -13,7 +13,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   return result;
 }
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -52,7 +52,9 @@ export function usePushNotifications(courtId: string, userId = "", ready = false
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    if (!VAPID_PUBLIC_KEY) return; // env var not configured — disable push silently
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time browser capability detection on mount
     setIsSupported(true);
     setIsDenied(Notification.permission === "denied");
 
@@ -162,6 +164,7 @@ export function usePushNotifications(courtId: string, userId = "", ready = false
     if (localStorage.getItem(key)) return;
     localStorage.setItem(key, "1");
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- auto-subscribe triggers async state updates inside subscribe()
     subscribe();
   // subscribe is stable (useCallback on courtId which doesn't change).
   // eslint-disable-next-line react-hooks/exhaustive-deps

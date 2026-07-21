@@ -27,6 +27,7 @@ export function useUsername() {
 
   useEffect(() => {
     const saved = getCookie(COOKIE_NAME);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time initialisation from browser cookie; can't use lazy useState on SSR
     if (saved) setUsername(saved);
 
     // Stable per-device ID — generated once, never tied to the display name.
