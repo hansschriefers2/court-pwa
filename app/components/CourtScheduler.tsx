@@ -26,11 +26,11 @@ const TIMELINE_PADDING_TOP = 32; // px — space for hour labels
 
 interface SlotBarsProps {
   rows: TimeSlot[][];
-  username?: string;
+  userId?: string;
   onSlotTap?: (slot: TimeSlot) => void;
 }
 
-function SlotBars({ rows, username, onSlotTap }: SlotBarsProps) {
+function SlotBars({ rows, userId, onSlotTap }: SlotBarsProps) {
   return (
     <>
       {rows.map((row, rowIdx) =>
@@ -38,7 +38,7 @@ function SlotBars({ rows, username, onSlotTap }: SlotBarsProps) {
           const left = (slot.startMin - DAY_START_MIN) * PX_PER_MIN;
           const width = (slot.endMin - slot.startMin) * PX_PER_MIN;
           const top = TIMELINE_PADDING_TOP + rowIdx * (BAR_H + ROW_GAP);
-          const isOwn = username && slot.name === username;
+          const isOwn = userId && slot.userId === userId;
           return (
             <div
               key={slot.id}
@@ -171,13 +171,13 @@ interface CourtSchedulerProps {
   onDateChange?: (date: Date) => void;
   /** Called when the user taps the "+" FAB. */
   onAddSlot?: () => void;
-  /** The current user's name — own slots are styled differently and tappable. */
-  username?: string;
+  /** The current user's stable UUID — own slots are styled differently and tappable. */
+  userId?: string;
   /** Called when the user taps one of their own slots. */
   onSlotTap?: (slot: TimeSlot) => void;
 }
 
-export default function CourtScheduler({ slots, onDateChange, onAddSlot, username, onSlotTap }: CourtSchedulerProps = {}) {
+export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId, onSlotTap }: CourtSchedulerProps = {}) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("heute");
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
@@ -200,7 +200,6 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, usernam
 
   useEffect(() => {
     scrollToNow();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Inner content width (full day + some padding) ─────────────────────────
@@ -313,7 +312,7 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, usernam
           })}
 
           {/* Slot bars */}
-          <SlotBars rows={rows} username={username} onSlotTap={onSlotTap} />
+          <SlotBars rows={rows} userId={userId} onSlotTap={onSlotTap} />
         </div>
       </div>
 

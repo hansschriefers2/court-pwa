@@ -5,18 +5,19 @@ import Link from "next/link";
 import { useUsername } from "@/lib/hooks/useUsername";
 import { useSlots } from "@/lib/hooks/useSlots";
 import { usePushNotifications } from "@/lib/hooks/usePushNotifications";
-import { supabase } from "@/lib/supabase/client";
 import CourtScheduler from "@/app/components/CourtScheduler";
 import UsernameModal from "@/app/components/UsernameModal";
 import AddSlotModal from "@/app/components/AddSlotModal";
 import SlotActionModal from "@/app/components/SlotActionModal";
 import type { Court, TimeSlot } from "@/lib/types";
 
-// Cookie handling is encapsulated in `useUsername()`.
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-// (SlotRow type removed — slot row mapping is handled inside `useSlots`.)
+type ModalState =
+  | { mode: "add" }
+  | { mode: "action"; slot: TimeSlot }
+  | { mode: "edit"; slot: TimeSlot }
+  | null;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -26,13 +27,11 @@ interface Props {
 
 export default function CourtView({ court }: Props) {
   const { username, userId, inputName, setInputName, confirm, ready } = useUsername();
-  const { slots, loading, error, currentDate, handleDateChange, removeSlot } = useSlots(
+  const { slots, loading, error, currentDate, handleDateChange, deleteSlot } = useSlots(
     court.id,
     username
   );
-  const [addingSlot, setAddingSlot] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
-  const [editingSlot, setEditingSlot] = useState<TimeSlot | null>(null);
+  const [modal, setModal] = useState<ModalState>(null);
   // Hook must be called before any early return (rules of hooks).
   // Pass !!username so the auto-subscribe prompt only fires once the user has a name.
   const { isSupported, isSubscribed, isLoading: notifyLoading, isDenied, toggle: toggleNotify } =
@@ -49,16 +48,6 @@ export default function CourtView({ court }: Props) {
         onConfirm={confirm}
       />
     );
-  }
-
-  async function deleteSlot(id: string) {
-    const { error: deleteError } = await supabase.from("slots").delete().eq("id", id);
-    if (deleteError) {
-      // Keep UI consistent with the DB; consider surfacing this to the user.
-      console.error(deleteError);
-      return;
-    }
-    removeSlot(id);
   }
 
   return (
@@ -129,37 +118,31 @@ export default function CourtView({ court }: Props) {
         <CourtScheduler
           slots={loading ? [] : slots}
           onDateChange={handleDateChange}
-          onAddSlot={() => setAddingSlot(true)}
-          username={username}
-          onSlotTap={(slot) => setSelectedSlot(slot)}
+          onAddSlot={() => setModal({ mode: "add" })}
+          userId={userId}
+          onSlotTap={(slot) => setModal({ mode: "action", slot })}
         />
       </div>
 
-      {selectedSlot && (
+      {modal?.mode === "action" && (
         <SlotActionModal
-          slot={selectedSlot}
-          onEdit={() => {
-            setEditingSlot(selectedSlot);
-            setSelectedSlot(null);
-          }}
+          slot={modal.slot}
+          onEdit={() => setModal({ mode: "edit", slot: modal.slot })}
           onDelete={async () => {
-            await deleteSlot(selectedSlot.id);
-            setSelectedSlot(null);
+            await deleteSlot(modal.slot.id);
+            setModal(null);
           }}
-          onClose={() => setSelectedSlot(null)}
+          onClose={() => setModal(null)}
         />
       )}
-      {(addingSlot || editingSlot) && (
+      {(modal?.mode === "add" || modal?.mode === "edit") && (
         <AddSlotModal
           court={court}
           username={username}
           userId={userId}
           date={currentDate}
-          editSlot={editingSlot ?? undefined}
-          onClose={() => {
-            setAddingSlot(false);
-            setEditingSlot(null);
-          }}
+          editSlot={modal.mode === "edit" ? modal.slot : undefined}
+          onClose={() => setModal(null)}
         />
       )}
     </div>

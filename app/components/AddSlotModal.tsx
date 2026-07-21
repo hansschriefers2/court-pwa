@@ -2,8 +2,7 @@
 
 import { useAddSlot } from "@/lib/hooks/useAddSlot";
 import { formatDateLabel } from "@/lib/utils/timeline";
-import type { Court } from "@/lib/types";
-import type { TimeSlot } from "@/lib/types";
+import type { Court, TimeSlot } from "@/lib/types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

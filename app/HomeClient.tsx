@@ -2,50 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
-
-function toSlug(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "");
-}
+import { useCreateCourt } from "@/lib/hooks/useCreateCourt";
 
 export default function HomeClient() {
   const [createName, setCreateName] = useState("");
   const [joinSlug, setJoinSlug] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { create, saving, error, clearError } = useCreateCourt();
   const router = useRouter();
-
-  async function create() {
-    const trimmed = createName.trim();
-    if (!trimmed) return;
-
-    const slug = toSlug(trimmed);
-    if (!slug) {
-      setError("Bitte nur Buchstaben und Zahlen verwenden.");
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-
-    const { error: insertError } = await supabase.from("courts").insert({
-      name: trimmed,
-      slug,
-      min_people: 4,
-    });
-
-    if (insertError) {
-      setError(insertError.message);
-      setSaving(false);
-      return;
-    }
-
-    router.push(`/${slug}`);
-  }
 
   function join() {
     const slug = joinSlug.trim();
@@ -79,8 +42,8 @@ export default function HomeClient() {
             type="text"
             placeholder="z. B. Stadtpark Platz 1"
             value={createName}
-            onChange={(e) => { setCreateName(e.target.value); setError(null); }}
-            onKeyDown={(e) => e.key === "Enter" && create()}
+            onChange={(e) => { setCreateName(e.target.value); clearError(); }}
+            onKeyDown={(e) => e.key === "Enter" && create(createName)}
             className="mb-3 w-full rounded-lg border border-gray-400 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
           />
           {error && (
@@ -89,7 +52,7 @@ export default function HomeClient() {
             </p>
           )}
           <button
-            onClick={create}
+            onClick={() => create(createName)}
             disabled={!createName.trim() || saving}
             className="w-full rounded-lg bg-lime-400 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-lime-300 disabled:opacity-40"
           >

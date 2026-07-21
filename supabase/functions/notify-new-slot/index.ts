@@ -92,9 +92,18 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  const toTime = (min: number) =>
+    `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+
+  const { start_min, end_min } = payload.record ?? {};
+  const timeRange =
+    start_min != null && end_min != null
+      ? ` von ${toTime(start_min)} bis ${toTime(end_min)}`
+      : "";
+
   const notificationPayload = JSON.stringify({
-    title: court?.name ? `${court.name} — neuer Slot` : "Neuer Slot",
-    body: `${bookedBy ?? "Jemand"} hat gerade einen Slot gebucht.`,
+    title: `Neuer Slot in ${court?.slug ?? court?.name ?? "Court"}`,
+    body: `${bookedBy ?? "Jemand"} hat${timeRange} Zeit`,
     courtSlug: court?.slug ?? null,
   });
 
