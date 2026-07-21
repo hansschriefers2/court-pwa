@@ -35,10 +35,12 @@ interface UsePushNotificationsResult {
 
 /**
  * @param courtId  – the court to manage notifications for
+ * @param userId   – stable per-device UUID; stored with the subscription so
+ *                   the edge function can skip notifying the slot creator
  * @param ready    – pass `!!username`; auto-subscribe only fires once this is true
  *                   (keeps the permission prompt away until the user has a name)
  */
-export function usePushNotifications(courtId: string, ready = false): UsePushNotificationsResult {
+export function usePushNotifications(courtId: string, userId = "", ready = false): UsePushNotificationsResult {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -97,7 +99,7 @@ export function usePushNotifications(courtId: string, ready = false): UsePushNot
       });
 
       const { error } = await supabase.from("subscriptions").upsert(
-        { court_id: courtId, subscription_json: sub.toJSON() },
+        { court_id: courtId, subscription_json: sub.toJSON(), user_id: userId },
         { ignoreDuplicates: true }, // ON CONFLICT DO NOTHING — idempotent subscribe
       );
 
@@ -114,7 +116,7 @@ export function usePushNotifications(courtId: string, ready = false): UsePushNot
     } finally {
       setIsLoading(false);
     }
-  }, [courtId]);
+  }, [courtId, userId]);
 
   // ── Unsubscribe ───────────────────────────────────────────────────────────
   const unsubscribe = useCallback(async () => {

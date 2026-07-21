@@ -6,6 +6,7 @@ import type { TimeSlot } from "@/lib/types";
 interface Options {
   courtId: string;
   username: string;
+  userId: string;
   date: Date;
   onSuccess: () => void;
   editSlot?: TimeSlot;
@@ -15,7 +16,7 @@ interface Options {
  * Manages the "add/edit slot" form: field state, validation, and the Supabase insert/update.
  * The caller (AddSlotModal) only handles rendering.
  */
-export function useAddSlot({ courtId, username, date, onSuccess, editSlot }: Options) {
+export function useAddSlot({ courtId, username, userId, date, onSuccess, editSlot }: Options) {
   const [startTime, setStartTime] = useState(() =>
     editSlot ? minToTimeStr(editSlot.startMin) : defaultStartTime()
   );
@@ -52,6 +53,7 @@ export function useAddSlot({ courtId, username, date, onSuccess, editSlot }: Opt
       const { error: insertError } = await supabase.from("slots").insert({
         court_id: courtId,
         user_name: username,
+        user_id: userId,
         date: localDateStr(date),
         start_min: startMin,
         end_min: endMin,

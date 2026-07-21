@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
     return new Response("Invalid JSON body", { status: 400 });
   }
 
-  const { court_id: courtId, user_name: bookedBy } = payload.record ?? {};
+  const { court_id: courtId, user_name: bookedBy, user_id: bookerId } = payload.record ?? {};
   if (!courtId) {
     return new Response("Missing court_id in record", { status: 400 });
   }
@@ -78,7 +78,8 @@ Deno.serve(async (req: Request) => {
   const { data: subs, error: subsError } = await supabase
     .from("subscriptions")
     .select("id, subscription_json")
-    .eq("court_id", courtId);
+    .eq("court_id", courtId)
+    .neq("user_id", bookerId ?? "");
 
   if (subsError) {
     console.error("DB error fetching subscriptions:", subsError);

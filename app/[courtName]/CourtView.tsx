@@ -25,7 +25,7 @@ interface Props {
 }
 
 export default function CourtView({ court }: Props) {
-  const { username, inputName, setInputName, confirm, ready } = useUsername();
+  const { username, userId, inputName, setInputName, confirm, ready } = useUsername();
   const { slots, loading, error, currentDate, handleDateChange, removeSlot } = useSlots(
     court.id,
     username
@@ -36,7 +36,7 @@ export default function CourtView({ court }: Props) {
   // Hook must be called before any early return (rules of hooks).
   // Pass !!username so the auto-subscribe prompt only fires once the user has a name.
   const { isSupported, isSubscribed, isLoading: notifyLoading, isDenied, toggle: toggleNotify } =
-    usePushNotifications(court.id, !!username);
+    usePushNotifications(court.id, userId, !!username);
 
   if (!ready) return null;
 
@@ -153,6 +153,7 @@ export default function CourtView({ court }: Props) {
         <AddSlotModal
           court={court}
           username={username}
+          userId={userId}
           date={currentDate}
           editSlot={editingSlot ?? undefined}
           onClose={() => {

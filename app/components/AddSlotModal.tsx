@@ -19,14 +19,15 @@ const DURATION_OPTIONS = [
 interface Props {
   court: Court;
   username: string;
+  userId: string;
   date: Date;
   onClose: () => void;
   editSlot?: TimeSlot;
 }
 
-export default function AddSlotModal({ court, username, date, onClose, editSlot }: Props) {
+export default function AddSlotModal({ court, username, userId, date, onClose, editSlot }: Props) {
   const { startTime, setStartTime, duration, setDuration, saving, error, submit } =
-    useAddSlot({ courtId: court.id, username, date, onSuccess: onClose, editSlot });
+    useAddSlot({ courtId: court.id, username, userId, date, onSuccess: onClose, editSlot });
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center">
