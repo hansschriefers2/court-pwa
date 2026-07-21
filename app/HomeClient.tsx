@@ -35,7 +35,7 @@ export default function HomeClient() {
     const { error: insertError } = await supabase.from("courts").insert({
       name: trimmed,
       slug,
-      min_people: 2,
+      min_people: 4,
     });
 
     if (insertError) {
@@ -81,7 +81,7 @@ export default function HomeClient() {
             value={createName}
             onChange={(e) => { setCreateName(e.target.value); setError(null); }}
             onKeyDown={(e) => e.key === "Enter" && create()}
-            className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-lime-400"
+            className="mb-3 w-full rounded-lg border border-gray-400 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
           />
           {error && (
             <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
@@ -111,7 +111,7 @@ export default function HomeClient() {
             value={joinSlug}
             onChange={(e) => setJoinSlug(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && join()}
-            className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-lime-400"
+            className="mb-3 w-full rounded-lg border border-gray-400 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
           />
           <button
             onClick={join}

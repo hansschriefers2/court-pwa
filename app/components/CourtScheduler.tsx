@@ -207,7 +207,7 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, usernam
   const innerWidth = DAY_END_MIN * PX_PER_MIN; // 2880 px
 
   return (
-    <div className="relative flex h-dvh flex-col bg-gray-100">
+    <div className="relative flex h-full flex-col bg-gray-100">
       {/* ── Top bar ─────────────────────────────────────────────── */}
       <div className="flex shrink-0 items-center gap-2 px-4 pt-4 pb-3">
         <button
