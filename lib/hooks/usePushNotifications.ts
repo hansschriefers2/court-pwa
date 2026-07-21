@@ -4,11 +4,13 @@ import { supabase } from "@/lib/supabase/client";
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Convert the base64url VAPID public key to the Uint8Array the browser needs. */
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = atob(base64);
-  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+  const result = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) result[i] = rawData.charCodeAt(i);
+  return result;
 }
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
@@ -31,11 +33,18 @@ interface UsePushNotificationsResult {
   toggle: () => void;
 }
 
-export function usePushNotifications(courtId: string): UsePushNotificationsResult {
+/**
+ * @param courtId  – the court to manage notifications for
+ * @param ready    – pass `!!username`; auto-subscribe only fires once this is true
+ *                   (keeps the permission prompt away until the user has a name)
+ */
+export function usePushNotifications(courtId: string, ready = false): UsePushNotificationsResult {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isDenied, setIsDenied] = useState(false);
+  /** True once the bootstrap async check (SW + DB) has resolved. */
+  const [initialized, setInitialized] = useState(false);
 
   // ── Bootstrap: register SW and check current subscription state ────────────
   useEffect(() => {
@@ -63,6 +72,8 @@ export function usePushNotifications(courtId: string): UsePushNotificationsResul
         setIsSubscribed(!!count && count > 0);
       } catch (err) {
         console.error("SW init error:", err);
+      } finally {
+        setInitialized(true);
       }
     })();
   }, [courtId]);
@@ -85,10 +96,10 @@ export function usePushNotifications(courtId: string): UsePushNotificationsResul
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
 
-      const { error } = await supabase.from("subscriptions").insert({
-        court_id: courtId,
-        subscription_json: sub.toJSON(),
-      });
+      const { error } = await supabase.from("subscriptions").upsert(
+        { court_id: courtId, subscription_json: sub.toJSON() },
+        { ignoreDuplicates: true }, // ON CONFLICT DO NOTHING — idempotent subscribe
+      );
 
       if (error) {
         // Roll back the browser-side subscription so state stays consistent.
@@ -137,6 +148,22 @@ export function usePushNotifications(courtId: string): UsePushNotificationsResul
     if (isSubscribed) return unsubscribe();
     return subscribe();
   }, [isSubscribed, subscribe, unsubscribe]);
+
+  // ── Auto-subscribe on first court visit ───────────────────────────────────
+  useEffect(() => {
+    // Wait until the username is confirmed (ready) and the DB check is done.
+    if (!initialized || !ready) return;
+    if (!isSupported || isDenied || isSubscribed) return;
+
+    // localStorage flag prevents re-asking on every page load after a dismissal.
+    const key = `notify-asked-${courtId}`;
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, "1");
+
+    subscribe();
+  // subscribe is stable (useCallback on courtId which doesn't change).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialized, ready, isSupported, isDenied, isSubscribed, courtId]);
 
   return { isSupported, isSubscribed, isLoading, isDenied, toggle };
 }
