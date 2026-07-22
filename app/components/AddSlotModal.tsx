@@ -21,7 +21,12 @@ export default function AddSlotModal({ court, username, userId, date, onClose, e
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center">
-      <div className="w-full max-w-sm rounded-t-2xl bg-white p-6 shadow-xl sm:rounded-2xl">
+      <div
+        className="w-full max-w-sm rounded-t-2xl bg-white p-6 shadow-xl sm:rounded-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label={editSlot ? "Slot bearbeiten" : "Neuer Slot"}
+      >
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-base font-semibold text-gray-800">
