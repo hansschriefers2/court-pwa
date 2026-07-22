@@ -91,9 +91,16 @@ test.describe("Court App – main flow", () => {
     await page.getByLabel("Ende").fill("11:00");
     await page.getByRole("button", { name: "Speichern" }).click();
 
+    // after save in test "3 – create a slot"
     await expect(addDialog).not.toBeVisible();
-    // The new slot must appear in the timeline
-    await expect(page.getByText(USERNAME).first()).toBeVisible();
+
+    // Wait for the slot card/list item to appear in scheduler area, not global page text
+    const slotEntry = page
+      .locator('[data-testid="slot-item"]')
+      .filter({ hasText: USERNAME })
+      .first();
+
+    await expect(slotEntry).toBeVisible({ timeout: 15_000 });
   });
 
   // ── 4. Edit slot ─────────────────────────────────────────────────────────
@@ -101,8 +108,12 @@ test.describe("Court App – main flow", () => {
     await setupPage(page, COURT_SLUG);
 
     // Open action modal by clicking the slot
-    const slot = page.getByText(USERNAME).first();
-    await expect(slot).toBeVisible();
+    const slot = page
+      .locator('[data-testid="slot-item"]')
+      .filter({ hasText: USERNAME })
+      .first();
+
+    await expect(slot).toBeVisible({ timeout: 15_000 });
     await slot.click();
 
     const actionDialog = page.getByRole("dialog");

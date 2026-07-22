@@ -42,6 +42,7 @@ function SlotBars({ rows, userId, onSlotTap }: SlotBarsProps) {
           return (
             <div
               key={slot.id}
+              data-testid="slot-item"
               onClick={isOwn ? () => onSlotTap?.(slot) : undefined}
               className={[
                 "absolute flex items-center justify-center rounded-full border text-sm font-medium select-none",
