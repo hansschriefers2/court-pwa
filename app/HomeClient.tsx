@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCreateCourt } from "@/lib/hooks/useCreateCourt";
 
@@ -11,14 +12,14 @@ export default function HomeClient() {
   const router = useRouter();
 
   function join() {
-    const slug = joinSlug.trim();
+    const slug = joinSlug.trim().toLowerCase();
     if (!slug) return;
     router.push(`/${slug}`);
   }
 
   return (
-    <div className="flex h-dvh items-center justify-center bg-gray-100 px-4">
-      <div className="w-full max-w-sm space-y-4">
+    <div className="flex h-dvh flex-col items-center bg-gray-100 px-4">
+      <div className="flex flex-1 w-full max-w-sm flex-col items-center justify-center gap-4 py-8">
 
         {/* Logo */}
         <img
@@ -29,8 +30,11 @@ export default function HomeClient() {
           className="mx-auto rounded-2xl shadow-md"
         />
 
+        {/* Cards — grid forces both rows to the height of the taller one */}
+        <div className="grid w-full grid-rows-[1fr_1fr] gap-4">
+
         {/* Create */}
-        <div className="rounded-2xl bg-white p-6 shadow-xl">
+        <div className="flex h-full flex-col rounded-2xl bg-white p-6 shadow-xl">
           <h2 className="mb-1 text-base font-semibold text-gray-800">
             Neuen Platz anlegen
           </h2>
@@ -51,6 +55,7 @@ export default function HomeClient() {
               {error}
             </p>
           )}
+          <div className="flex-1" />
           <button
             onClick={() => create(createName)}
             disabled={!createName.trim() || saving}
@@ -61,7 +66,7 @@ export default function HomeClient() {
         </div>
 
         {/* Join */}
-        <div className="rounded-2xl bg-white p-6 shadow-xl">
+        <div className="flex h-full flex-col rounded-2xl bg-white p-6 shadow-xl">
           <h2 className="mb-1 text-base font-semibold text-gray-800">
             Bestehenden Platz öffnen
           </h2>
@@ -76,16 +81,27 @@ export default function HomeClient() {
             onKeyDown={(e) => e.key === "Enter" && join()}
             className="mb-3 w-full rounded-lg border border-gray-400 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
           />
+          <div className="flex-1" />
           <button
             onClick={join}
             disabled={!joinSlug.trim()}
-            className="w-full rounded-lg border border-lime-400 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-lime-50 disabled:opacity-40"
+            className="w-full rounded-lg bg-lime-400 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-lime-300 disabled:opacity-40"
           >
             Öffnen
           </button>
         </div>
 
+        </div>
+
       </div>
+
+      {/* Footer */}
+      <footer className="mb-6 flex justify-center gap-5 text-xs text-gray-400">
+        <Link href="/impressum" className="hover:text-gray-600 transition-colors">Impressum</Link>
+        <Link href="/datenschutz" className="hover:text-gray-600 transition-colors">Datenschutz</Link>
+        <Link href="/faq" className="hover:text-gray-600 transition-colors">FAQ</Link>
+      </footer>
+
     </div>
   );
 }
