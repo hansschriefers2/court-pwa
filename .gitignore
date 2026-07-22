@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
 
 # next.js
 /.next/
@@ -33,8 +35,8 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
-# vercel
-.vercel
+# supabase local state (contains project ref, pooler URL, org ID)
+supabase/.temp/
 
 # typescript
 *.tsbuildinfo
