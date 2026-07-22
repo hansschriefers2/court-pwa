@@ -12,26 +12,41 @@ interface Options {
   editSlot?: TimeSlot;
 }
 
+function pushEndTime(timeStr: string, minutes: number): string {
+  return minToTimeStr(Math.min(timeStrToMin(timeStr) + minutes, 23 * 60 + 59));
+}
+
 /**
  * Manages the "add/edit slot" form: field state, validation, and the Supabase insert/update.
  * The caller (AddSlotModal) only handles rendering.
  */
 export function useAddSlot({ courtId, username, userId, date, onSuccess, editSlot }: Options) {
-  const [startTime, setStartTime] = useState(() =>
+  const [startTime, setStartTimeRaw] = useState(() =>
     editSlot ? minToTimeStr(editSlot.startMin) : defaultStartTime()
   );
-  const [duration, setDuration] = useState(() =>
-    editSlot ? editSlot.endMin - editSlot.startMin : 60
+  const [endTime, setEndTime] = useState(() =>
+    editSlot ? minToTimeStr(editSlot.endMin) : pushEndTime(defaultStartTime(), 60)
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function setStartTime(value: string) {
+    setStartTimeRaw(value);
+    if (timeStrToMin(endTime) <= timeStrToMin(value)) {
+      setEndTime(pushEndTime(value, 60));
+    }
+  }
+
   async function submit() {
     const startMin = timeStrToMin(startTime);
-    const endMin = startMin + duration;
+    const endMin = timeStrToMin(endTime);
 
+    if (endMin <= startMin) {
+      setError("Das Ende muss nach dem Start liegen.");
+      return;
+    }
     if (endMin > 24 * 60) {
-      setError("Slot endet nach Mitternacht. Bitte wähle eine kürzere Dauer.");
+      setError("Slot endet nach Mitternacht. Bitte wähle ein früheres Ende.");
       return;
     }
 
@@ -70,5 +85,5 @@ export function useAddSlot({ courtId, username, userId, date, onSuccess, editSlo
     onSuccess();
   }
 
-  return { startTime, setStartTime, duration, setDuration, saving, error, submit };
+  return { startTime, setStartTime, endTime, setEndTime, saving, error, submit };
 }

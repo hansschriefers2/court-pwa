@@ -9,6 +9,7 @@ import CourtScheduler from "@/app/components/CourtScheduler";
 import UsernameModal from "@/app/components/UsernameModal";
 import AddSlotModal from "@/app/components/AddSlotModal";
 import SlotActionModal from "@/app/components/SlotActionModal";
+import { IOSInstructionsModal, detectPlatform, isStandalone } from "@/app/components/PWAInstallPrompt";
 import type { Court, TimeSlot } from "@/lib/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -32,10 +33,19 @@ export default function CourtView({ court }: Props) {
     username
   );
   const [modal, setModal] = useState<ModalState>(null);
+  const [showIOSInstallModal, setShowIOSInstallModal] = useState(false);
   // Hook must be called before any early return (rules of hooks).
   // Pass !!username so the auto-subscribe prompt only fires once the user has a name.
   const { isSupported, isSubscribed, isLoading: notifyLoading, isDenied, toggle: toggleNotify } =
     usePushNotifications(court.id, userId, !!username);
+
+  function handleNotifyClick() {
+    if (!isSubscribed && detectPlatform() === "ios" && !isStandalone()) {
+      setShowIOSInstallModal(true);
+      return;
+    }
+    toggleNotify();
+  }
 
   if (!ready) return null;
 
@@ -68,7 +78,7 @@ export default function CourtView({ court }: Props) {
 
         {isSupported && (
           <button
-            onClick={isDenied ? undefined : toggleNotify}
+            onClick={isDenied ? undefined : handleNotifyClick}
             disabled={notifyLoading || isDenied}
             aria-label={
               isDenied
@@ -144,6 +154,9 @@ export default function CourtView({ court }: Props) {
           editSlot={modal.mode === "edit" ? modal.slot : undefined}
           onClose={() => setModal(null)}
         />
+      )}
+      {showIOSInstallModal && (
+        <IOSInstructionsModal onDismiss={() => setShowIOSInstallModal(false)} />
       )}
     </div>
   );

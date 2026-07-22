@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
     return new Response("Invalid JSON body", { status: 400 });
   }
 
-  const { court_id: courtId, user_name: bookedBy, user_id: bookerId } = payload.record ?? {};
+  const { court_id: courtId, user_name: bookedBy, user_id: bookerId, date: slotDate } = payload.record ?? {};
   if (!courtId) {
     return new Response("Missing court_id in record", { status: 400 });
   }
@@ -95,6 +95,20 @@ Deno.serve(async (req: Request) => {
   const toTime = (min: number) =>
     `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
 
+  function datePart(d: string | undefined): string {
+    if (!d) return "";
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const tomorrow = new Date(now);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+    if (d === todayStr) return " heute";
+    if (d === tomorrowStr) return " morgen";
+    const [year, month, day] = d.split("-").map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return " am " + date.toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+  }
+
   const { start_min, end_min } = payload.record ?? {};
   const timeRange =
     start_min != null && end_min != null
@@ -103,7 +117,7 @@ Deno.serve(async (req: Request) => {
 
   const notificationPayload = JSON.stringify({
     title: `Neuer Slot in ${court?.slug ?? court?.name ?? "Court"}`,
-    body: `${bookedBy ?? "Jemand"} hat${timeRange} Zeit`,
+    body: `${bookedBy ?? "Jemand"} hat${datePart(slotDate)}${timeRange} Zeit`,
     courtSlug: court?.slug ?? null,
   });
 

@@ -4,15 +4,6 @@ import { useAddSlot } from "@/lib/hooks/useAddSlot";
 import { formatDateLabel } from "@/lib/utils/timeline";
 import type { Court, TimeSlot } from "@/lib/types";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const DURATION_OPTIONS = [
-  { label: "30m", value: 30 },
-  { label: "1h", value: 60 },
-  { label: "90m", value: 90 },
-  { label: "2h", value: 120 },
-];
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -25,7 +16,7 @@ interface Props {
 }
 
 export default function AddSlotModal({ court, username, userId, date, onClose, editSlot }: Props) {
-  const { startTime, setStartTime, duration, setDuration, saving, error, submit } =
+  const { startTime, setStartTime, endTime, setEndTime, saving, error, submit } =
     useAddSlot({ courtId: court.id, username, userId, date, onSuccess: onClose, editSlot });
 
   return (
@@ -42,7 +33,7 @@ export default function AddSlotModal({ court, username, userId, date, onClose, e
         {/* Start time */}
         <label className="mb-4 block">
           <span className="mb-1.5 block text-xs font-medium text-gray-500">
-            Startzeit
+            Start
           </span>
           <input
             type="time"
@@ -52,29 +43,19 @@ export default function AddSlotModal({ court, username, userId, date, onClose, e
           />
         </label>
 
-        {/* Duration */}
-        <div className="mb-5">
+        {/* End time */}
+        <label className="mb-5 block">
           <span className="mb-1.5 block text-xs font-medium text-gray-500">
-            Dauer
+            Ende
           </span>
-          <div className="grid grid-cols-4 gap-2">
-            {DURATION_OPTIONS.map(({ label, value }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setDuration(value)}
-                className={[
-                  "rounded-lg border py-2 text-sm font-medium transition-colors",
-                  duration === value
-                    ? "border-lime-400 bg-lime-400 text-gray-900"
-                    : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
-                ].join(" ")}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
+          <input
+            type="time"
+            value={endTime}
+            min={startTime}
+            onChange={(e) => setEndTime(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-lime-400"
+          />
+        </label>
 
         {/* Error */}
         {error && (
