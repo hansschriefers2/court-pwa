@@ -16,7 +16,7 @@ interface Props {
 }
 
 export default function AddSlotModal({ court, username, userId, date, onClose, editSlot }: Props) {
-  const { startTime, setStartTime, endTime, setEndTime, saving, error, submit } =
+  const { startTime, setStartTime, endTime, setEndTime, displayName, setDisplayName, saving, error, submit } =
     useAddSlot({ courtId: court.id, username, userId, date, onSuccess: onClose, editSlot });
 
   return (
@@ -35,6 +35,19 @@ export default function AddSlotModal({ court, username, userId, date, onClose, e
           <span className="text-sm text-gray-400">{formatDateLabel(date)}</span>
         </div>
 
+        {/* Name */}
+        <label className="mb-4 block">
+          <span className="mb-1.5 block text-xs font-medium text-gray-500">
+            Name
+          </span>
+          <input
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-lime-400"
+          />
+        </label>
+
         {/* Start time */}
         <label className="mb-4 block">
           <span className="mb-1.5 block text-xs font-medium text-gray-500">
@@ -44,7 +57,7 @@ export default function AddSlotModal({ court, username, userId, date, onClose, e
             type="time"
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-lime-400"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-lime-400"
           />
         </label>
 
@@ -58,7 +71,7 @@ export default function AddSlotModal({ court, username, userId, date, onClose, e
             value={endTime}
             min={startTime}
             onChange={(e) => setEndTime(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-lime-400"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-lime-400"
           />
         </label>
 

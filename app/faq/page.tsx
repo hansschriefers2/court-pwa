@@ -1,5 +1,6 @@
 import Link from "next/link";
 import FAQAccordion from "./FAQAccordion";
+import ClearDataButton from "./ClearDataButton";
 
 export const metadata = { title: "FAQ – Court" };
 
@@ -72,6 +73,13 @@ export default function FAQPage() {
           </h1>
 
           <FAQAccordion faqs={FAQS} />
+
+          <div className="mt-8 border-t border-gray-100 pt-6">
+            <p className="mb-3 text-sm text-gray-500">
+              Benutzernamen und Geräte-ID aus den Browser-Cookies entfernen:
+            </p>
+            <ClearDataButton />
+          </div>
         </div>
       </div>
     </div>

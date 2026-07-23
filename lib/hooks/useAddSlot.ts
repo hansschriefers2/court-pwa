@@ -27,6 +27,7 @@ export function useAddSlot({ courtId, username, userId, date, onSuccess, editSlo
   const [endTime, setEndTime] = useState(() =>
     editSlot ? minToTimeStr(editSlot.endMin) : pushEndTime(defaultStartTime(), 60)
   );
+  const [displayName, setDisplayName] = useState(editSlot ? editSlot.name : username);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +57,7 @@ export function useAddSlot({ courtId, username, userId, date, onSuccess, editSlo
     if (editSlot) {
       const { error: updateError } = await supabase
         .from("slots")
-        .update({ start_min: startMin, end_min: endMin })
+        .update({ start_min: startMin, end_min: endMin, user_name: displayName.trim() || editSlot.name })
         .eq("id", editSlot.id);
 
       if (updateError) {
@@ -67,7 +68,7 @@ export function useAddSlot({ courtId, username, userId, date, onSuccess, editSlo
     } else {
       const { error: insertError } = await supabase.from("slots").insert({
         court_id: courtId,
-        user_name: username,
+        user_name: displayName.trim() || username,
         user_id: userId,
         date: localDateStr(date),
         start_min: startMin,
@@ -85,5 +86,5 @@ export function useAddSlot({ courtId, username, userId, date, onSuccess, editSlo
     onSuccess();
   }
 
-  return { startTime, setStartTime, endTime, setEndTime, saving, error, submit };
+  return { startTime, setStartTime, endTime, setEndTime, displayName, setDisplayName, saving, error, submit };
 }
