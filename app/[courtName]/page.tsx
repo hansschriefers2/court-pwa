@@ -6,7 +6,7 @@ import type { Court } from "@/lib/types";
 async function getCourt(slug: string): Promise<Court | null> {
   const { data, error } = await supabase
     .from("courts")
-    .select("id, name, slug, min_people")
+    .select("id, name, slug, min_people, description, maps_url")
     .eq("slug", slug)
     .single();
 

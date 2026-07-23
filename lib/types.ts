@@ -3,6 +3,8 @@ export interface Court {
   name: string;
   slug: string;
   min_people: number;
+  description?: string;
+  maps_url?: string;
 }
 
 export interface TimeSlot {

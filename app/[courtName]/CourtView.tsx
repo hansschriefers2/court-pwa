@@ -141,6 +141,30 @@ export default function CourtView({ court }: Props) {
         )}
       </header>
 
+      {/* ── Info strip ─────────────────────────────────────────────────── */}
+      {(court.description || court.maps_url) && (
+        <div className="flex shrink-0 items-center gap-2 bg-gray-50 border-b border-gray-100 px-4 py-2">
+          {court.description && (
+            <p className="flex-1 text-xs text-gray-400 leading-relaxed">{court.description}</p>
+          )}
+          {court.maps_url && (
+            <a
+              href={court.maps_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex shrink-0 items-center gap-1 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 shadow-sm hover:bg-gray-50 active:scale-95 transition-all"
+              aria-label="In Google Maps öffnen"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 text-red-500" aria-hidden="true">
+                <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              Maps
+            </a>
+          )}
+        </div>
+      )}
+
       {error && (
         <div className="fixed top-16 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 shadow">
           Fehler beim Laden: {error}

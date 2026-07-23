@@ -7,6 +7,8 @@ import { useCreateCourt } from "@/lib/hooks/useCreateCourt";
 
 export default function HomeClient() {
   const [createName, setCreateName] = useState("");
+  const [createDesc, setCreateDesc] = useState("");
+  const [createMaps, setCreateMaps] = useState("");
   const [joinSlug, setJoinSlug] = useState("");
   const { create, saving, error, clearError } = useCreateCourt();
   const router = useRouter();
@@ -47,7 +49,22 @@ export default function HomeClient() {
             placeholder="z. B. Stadtpark Platz 1"
             value={createName}
             onChange={(e) => { setCreateName(e.target.value); clearError(); }}
-            onKeyDown={(e) => e.key === "Enter" && create(createName)}
+            onKeyDown={(e) => e.key === "Enter" && create(createName, createDesc, createMaps)}
+            className="mb-3 w-full rounded-lg border border-gray-400 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
+          />
+          <textarea
+            placeholder="Kurzbeschreibung (optional, max. 400 Zeichen)"
+            value={createDesc}
+            maxLength={400}
+            rows={2}
+            onChange={(e) => setCreateDesc(e.target.value)}
+            className="mb-3 w-full resize-none rounded-lg border border-gray-400 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
+          />
+          <input
+            type="url"
+            placeholder="Google Maps Link (optional)"
+            value={createMaps}
+            onChange={(e) => setCreateMaps(e.target.value)}
             className="mb-3 w-full rounded-lg border border-gray-400 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
           />
           {error && (
@@ -57,7 +74,7 @@ export default function HomeClient() {
           )}
           <div className="flex-1" />
           <button
-            onClick={() => create(createName)}
+            onClick={() => create(createName, createDesc, createMaps)}
             disabled={!createName.trim() || saving}
             className="w-full rounded-lg bg-lime-400 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-lime-300 disabled:opacity-40"
           >
