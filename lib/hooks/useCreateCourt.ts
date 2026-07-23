@@ -15,7 +15,7 @@ export function useCreateCourt() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  async function create(name: string) {
+  async function create(name: string, description?: string, mapsUrl?: string) {
     const trimmed = name.trim();
     if (!trimmed) return;
 
@@ -32,6 +32,8 @@ export function useCreateCourt() {
       name: trimmed,
       slug,
       min_people: 4,
+      description: description?.trim() || null,
+      maps_url: mapsUrl?.trim() || null,
     });
 
     if (insertError) {

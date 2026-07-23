@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useUsername } from "@/lib/hooks/useUsername";
 import { useSlots } from "@/lib/hooks/useSlots";
 import { usePushNotifications } from "@/lib/hooks/usePushNotifications";
+import { addRecentCourt } from "@/lib/hooks/useRecentCourts";
 import CourtScheduler from "@/app/components/CourtScheduler";
 import UsernameModal from "@/app/components/UsernameModal";
 import AddSlotModal from "@/app/components/AddSlotModal";
@@ -27,6 +28,10 @@ interface Props {
 }
 
 export default function CourtView({ court }: Props) {
+  useEffect(() => {
+    addRecentCourt(court.slug, court.name);
+  }, [court.slug, court.name]);
+
   const { username, userId, inputName, setInputName, confirm, ready } = useUsername();
   const { slots, loading, error, currentDate, handleDateChange, deleteSlot } = useSlots(
     court.id,
@@ -82,6 +87,18 @@ export default function CourtView({ court }: Props) {
         </Link>
 
         <h1 className="flex-1 truncate px-1 text-base font-semibold text-gray-900">{court.name}</h1>
+
+        {/* Pinboard button */}
+        <Link
+          href={`/${court.slug}/pinnwand`}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-700 active:scale-95"
+          aria-label="Pinnwand"
+          title="Pinnwand – Nachrichten für den Court"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          </svg>
+        </Link>
 
         {isStandalone() && typeof navigator !== "undefined" && "share" in navigator && (
           <button
@@ -140,6 +157,30 @@ export default function CourtView({ court }: Props) {
           </button>
         )}
       </header>
+
+      {/* ── Info strip ─────────────────────────────────────────────────── */}
+      {(court.description || court.maps_url) && (
+        <div className="flex shrink-0 items-center gap-2 bg-gray-50 border-b border-gray-100 px-4 py-2">
+          {court.description && (
+            <p className="flex-1 text-xs text-gray-400 leading-relaxed">{court.description}</p>
+          )}
+          {court.maps_url && (
+            <a
+              href={court.maps_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex shrink-0 items-center gap-1 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 shadow-sm hover:bg-gray-50 active:scale-95 transition-all"
+              aria-label="In Google Maps öffnen"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 text-red-500" aria-hidden="true">
+                <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              Maps
+            </a>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="fixed top-16 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 shadow">

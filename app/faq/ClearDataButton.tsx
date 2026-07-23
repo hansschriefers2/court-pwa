@@ -12,6 +12,7 @@ export default function ClearDataButton() {
   function handleClear() {
     deleteCookie("court_username");
     deleteCookie("court_user_id");
+    deleteCookie("recent_courts");
     setDone(true);
   }
 

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import CourtView from "./CourtView";
+import PinboardView from "./PinboardView";
 import { supabase } from "@/lib/supabase/client";
 import type { Court } from "@/lib/types";
 
@@ -14,7 +14,7 @@ async function getCourt(slug: string): Promise<Court | null> {
   return data as Court;
 }
 
-export default async function CourtPage({
+export default async function PinboardPage({
   params,
 }: {
   params: Promise<{ courtName: string }>;
@@ -24,5 +24,5 @@ export default async function CourtPage({
 
   if (!court) notFound();
 
-  return <CourtView court={court} />;
+  return <PinboardView court={court} />;
 }

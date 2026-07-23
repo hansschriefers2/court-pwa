@@ -3,6 +3,17 @@ export interface Court {
   name: string;
   slug: string;
   min_people: number;
+  description?: string;
+  maps_url?: string;
+}
+
+export interface PinboardMessage {
+  id: string;
+  courtId: string;
+  userId: string;
+  username: string;
+  message: string;
+  createdAt: string;
 }
 
 export interface TimeSlot {

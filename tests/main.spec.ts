@@ -132,4 +132,28 @@ test.describe("Court App – main flow", () => {
     // Slot still visible after edit
     await expect(page.getByText(USERNAME).first()).toBeVisible();
   });
+
+  // ── 5. Pinnwand: post and delete a message ───────────────────────────────
+  test("5 – post a message on the Pinnwand and remove it", async ({ page }) => {
+    await setupPage(page, COURT_SLUG);
+
+    // Navigate to Pinnwand via header button
+    await page.getByRole("link", { name: "Pinnwand" }).click();
+    await expect(page).toHaveURL(`/${COURT_SLUG}/pinnwand`, { timeout: 10_000 });
+
+    const MESSAGE = "Testnachricht vom Playwright";
+
+    // Type message and submit
+    await page.getByPlaceholder("Nachricht hinterlassen…").fill(MESSAGE);
+    await page.getByRole("button", { name: "Anheften" }).click();
+
+    // Message card must appear
+    await expect(page.getByText(MESSAGE)).toBeVisible({ timeout: 10_000 });
+
+    // Delete it
+    await page.getByRole("button", { name: "Nachricht entfernen" }).first().click();
+
+    // Card must be gone
+    await expect(page.getByText(MESSAGE)).not.toBeVisible({ timeout: 10_000 });
+  });
 });
