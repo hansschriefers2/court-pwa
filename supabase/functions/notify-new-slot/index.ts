@@ -26,6 +26,7 @@ webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 interface SlotRecord {
   id: string;
   court_id: string;
+  user_id: string;
   user_name: string;
   date: string;
   start_min: number;
@@ -42,6 +43,7 @@ interface WebhookPayload {
 
 interface SubscriptionRow {
   id: string;
+  user_id: string;
   subscription_json: webpush.PushSubscription;
 }
 
@@ -71,9 +73,11 @@ Deno.serve(async (req: Request) => {
   // Fetch the court slug for a nicer notification click target.
   const { data: court } = await supabase
     .from("courts")
-    .select("slug, name")
+    .select("slug, name, min_people")
     .eq("id", courtId)
     .maybeSingle();
+
+  const minPeople: number = court?.min_people ?? 2;
 
   const { data: subs, error: subsError } = await supabase
     .from("subscriptions")
@@ -84,12 +88,6 @@ Deno.serve(async (req: Request) => {
   if (subsError) {
     console.error("DB error fetching subscriptions:", subsError);
     return new Response("DB error", { status: 500 });
-  }
-
-  if (!subs?.length) {
-    return new Response(JSON.stringify({ sent: 0 }), {
-      headers: { "Content-Type": "application/json" },
-    });
   }
 
   const toTime = (min: number) =>
@@ -123,41 +121,119 @@ Deno.serve(async (req: Request) => {
 
   const staleIds: string[] = [];
 
-  await Promise.allSettled(
-    (subs as SubscriptionRow[]).map(async (row) => {
-      try {
-        await webpush.sendNotification(row.subscription_json, notificationPayload);
-      } catch (err: unknown) {
-        // 404 / 410 means the push subscription has expired — clean it up.
-        if (
-          err !== null &&
-          typeof err === "object" &&
-          "statusCode" in err &&
-          (err.statusCode === 404 || err.statusCode === 410)
-        ) {
-          staleIds.push(row.id);
-        } else {
-          console.error("Push send error for subscription", row.id, err);
+  if (subs?.length) {
+    await Promise.allSettled(
+      (subs as SubscriptionRow[]).map(async (row) => {
+        try {
+          await webpush.sendNotification(row.subscription_json, notificationPayload);
+        } catch (err: unknown) {
+          // 404 / 410 means the push subscription has expired — clean it up.
+          if (
+            err !== null &&
+            typeof err === "object" &&
+            "statusCode" in err &&
+            (err.statusCode === 404 || err.statusCode === 410)
+          ) {
+            staleIds.push(row.id);
+          } else {
+            console.error("Push send error for subscription", row.id, err);
+          }
         }
-      }
-    }),
-  );
+      }),
+    );
 
-  if (staleIds.length > 0) {
-    const { error: deleteError } = await supabase
-      .from("subscriptions")
-      .delete()
-      .in("id", staleIds);
-    if (deleteError) {
-      console.error("Failed to clean up stale subscriptions:", deleteError);
+    if (staleIds.length > 0) {
+      const { error: deleteError } = await supabase
+        .from("subscriptions")
+        .delete()
+        .in("id", staleIds);
+      if (deleteError) {
+        console.error("Failed to clean up stale subscriptions:", deleteError);
+      }
     }
   }
 
   const sent = subs.length - staleIds.length;
   console.log(`Notified ${sent} subscriber(s), removed ${staleIds.length} stale.`);
 
+  // ─── Group availability check ─────────────────────────────────────────────
+  // When exactly min_people distinct users have overlapping slots, the threshold
+  // is crossed for the first time → notify all of them.
+  // count > min_people means the threshold was already crossed before → skip.
+  let groupSent = 0;
+
+  if (slotDate && payload.record.start_min != null && payload.record.end_min != null) {
+    const { data: overlapping } = await supabase
+      .from("slots")
+      .select("user_id, user_name, start_min, end_min")
+      .eq("court_id", courtId)
+      .eq("date", slotDate)
+      .lt("start_min", payload.record.end_min)
+      .gt("end_min", payload.record.start_min);
+
+    if (overlapping?.length) {
+      // One entry per distinct user (earliest slot wins if they have multiple)
+      const byUser = new Map<string, { user_id: string; user_name: string; start_min: number; end_min: number }>();
+      for (const s of overlapping) {
+        if (!byUser.has(s.user_id)) byUser.set(s.user_id, s);
+      }
+      const distinctUsers = [...byUser.values()];
+
+      if (distinctUsers.length === minPeople) {
+        // Compute common intersection window
+        const intersectionStart = Math.max(...distinctUsers.map((s) => s.start_min));
+        const intersectionEnd = Math.min(...distinctUsers.map((s) => s.end_min));
+
+        if (intersectionStart < intersectionEnd) {
+          const groupUserIds = distinctUsers.map((u) => u.user_id);
+
+          const { data: groupSubs } = await supabase
+            .from("subscriptions")
+            .select("id, user_id, subscription_json")
+            .eq("court_id", courtId)
+            .in("user_id", groupUserIds);
+
+          if (groupSubs?.length) {
+            const groupPayload = JSON.stringify({
+              title: `Gemeinsamer Slot in ${court?.name ?? court?.slug ?? "Court"}`,
+              body: `${minPeople} Personen haben${datePart(slotDate)} von ${toTime(intersectionStart)} bis ${toTime(intersectionEnd)} gleichzeitig Zeit!`,
+              courtSlug: court?.slug ?? null,
+            });
+
+            const staleGroupIds: string[] = [];
+            await Promise.allSettled(
+              (groupSubs as SubscriptionRow[]).map(async (row) => {
+                try {
+                  await webpush.sendNotification(row.subscription_json, groupPayload);
+                  groupSent++;
+                } catch (err: unknown) {
+                  if (
+                    err !== null &&
+                    typeof err === "object" &&
+                    "statusCode" in err &&
+                    (err.statusCode === 404 || err.statusCode === 410)
+                  ) {
+                    staleGroupIds.push(row.id);
+                  } else {
+                    console.error("Group push error for subscription", row.id, err);
+                  }
+                }
+              }),
+            );
+
+            if (staleGroupIds.length > 0) {
+              await supabase.from("subscriptions").delete().in("id", staleGroupIds);
+            }
+
+            console.log(`Group notification sent to ${groupSent} subscriber(s) (${minPeople}-person overlap).`);
+          }
+        }
+      }
+    }
+  }
+
   return new Response(
-    JSON.stringify({ sent, stale: staleIds.length }),
+    JSON.stringify({ sent, stale: staleIds.length, groupSent }),
     { headers: { "Content-Type": "application/json" } },
   );
 });
