@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useUsername } from "@/lib/hooks/useUsername";
 import { useSlots } from "@/lib/hooks/useSlots";
 import { usePushNotifications } from "@/lib/hooks/usePushNotifications";
+import { addRecentCourt } from "@/lib/hooks/useRecentCourts";
 import CourtScheduler from "@/app/components/CourtScheduler";
 import UsernameModal from "@/app/components/UsernameModal";
 import AddSlotModal from "@/app/components/AddSlotModal";
@@ -27,6 +28,10 @@ interface Props {
 }
 
 export default function CourtView({ court }: Props) {
+  useEffect(() => {
+    addRecentCourt(court.slug, court.name);
+  }, [court.slug, court.name]);
+
   const { username, userId, inputName, setInputName, confirm, ready } = useUsername();
   const { slots, loading, error, currentDate, handleDateChange, deleteSlot } = useSlots(
     court.id,
@@ -82,6 +87,18 @@ export default function CourtView({ court }: Props) {
         </Link>
 
         <h1 className="flex-1 truncate px-1 text-base font-semibold text-gray-900">{court.name}</h1>
+
+        {/* Pinboard button */}
+        <Link
+          href={`/${court.slug}/pinnwand`}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-700 active:scale-95"
+          aria-label="Pinnwand"
+          title="Pinnwand – Nachrichten für den Court"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          </svg>
+        </Link>
 
         {isStandalone() && typeof navigator !== "undefined" && "share" in navigator && (
           <button

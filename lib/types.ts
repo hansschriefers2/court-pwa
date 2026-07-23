@@ -7,6 +7,15 @@ export interface Court {
   maps_url?: string;
 }
 
+export interface PinboardMessage {
+  id: string;
+  courtId: string;
+  userId: string;
+  username: string;
+  message: string;
+  createdAt: string;
+}
+
 export interface TimeSlot {
   id: string;  // UUID from Supabase (or synthetic string for sample data)
   name: string;
