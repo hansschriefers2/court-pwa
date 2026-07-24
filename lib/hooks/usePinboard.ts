@@ -43,7 +43,7 @@ export function usePinboard(courtId: string) {
       .from("pinboard_messages")
       .select("id, court_id, user_id, username, message, created_at")
       .eq("court_id", courtId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
     setMessages((data as MessageRow[] ?? []).map(rowToMessage));
     setLoading(false);
   }, [courtId]);
@@ -67,7 +67,7 @@ export function usePinboard(courtId: string) {
           setMessages((prev) => {
             // Avoid duplicate if our own optimistic insert already added it
             if (prev.some((m) => m.id === newMsg.id)) return prev;
-            return [newMsg, ...prev];
+            return [...prev, newMsg];
           });
         }
       )
