@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useState } from "react";
@@ -12,11 +13,10 @@ const NOTE_STYLE = { bg: "#fef9c3", border: "#fde047" }; // yellow-100 / yellow-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-  });
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit" });
+  const time = d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  return `${date}, ${time}`;
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -152,8 +152,7 @@ export default function PinboardView({ court }: Props) {
           </p>
         ) : (
           <div
-            className="px-3 pt-4 pb-4"
-            style={{ columns: "2 150px", columnGap: "12px" }}
+            className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 px-3 pt-4 pb-4 gap-3"
           >
             {messages.map((msg) => (
               <NoteCard key={msg.id} msg={msg} onDelete={deleteMessage} />
