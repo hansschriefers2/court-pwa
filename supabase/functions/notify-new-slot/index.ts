@@ -125,7 +125,9 @@ Deno.serve(async (req: Request) => {
     await Promise.allSettled(
       (subs as SubscriptionRow[]).map(async (row) => {
         try {
-          await webpush.sendNotification(row.subscription_json, notificationPayload);
+          await webpush.sendNotification(row.subscription_json, notificationPayload, {
+            urgency: "high",
+          });
         } catch (err: unknown) {
           // 404 / 410 means the push subscription has expired — clean it up.
           if (
