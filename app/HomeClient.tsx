@@ -83,7 +83,6 @@ export default function HomeClient() {
             Gib den Kurznamen des Platzes ein.
           </p>
           <input
-            autoFocus
             type="text"
             placeholder="z. B. stadtpark-platz-1"
             value={joinSlug}
