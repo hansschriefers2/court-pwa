@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { TimeSlot } from "@/lib/types";
 import {
   stackSlots,
+  buildHeatmapData,
   toMinutes,
   formatDateLabel,
   buildCalendarGrid,
@@ -22,7 +23,7 @@ const HOURS = Array.from({ length: 25 }, (_, i) => i); // 0 … 24
 
 const BAR_H = 36; // px
 const ROW_GAP = 8; // px
-const TIMELINE_PADDING_TOP = 32; // px — space for hour labels
+const TIMELINE_PADDING_TOP = 50; // px — space for hour labels + heatmap bar
 
 interface SlotBarsProps {
   rows: TimeSlot[][];
@@ -176,15 +177,19 @@ interface CourtSchedulerProps {
   userId?: string;
   /** Called when the user taps one of their own slots. */
   onSlotTap?: (slot: TimeSlot) => void;
+  /** Minimum number of distinct users required for a group-availability highlight. */
+  minPeople?: number;
 }
 
-export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId, onSlotTap }: CourtSchedulerProps = {}) {
+export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId, onSlotTap, minPeople }: CourtSchedulerProps = {}) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("heute");
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
 
   const rows = stackSlots(slots || []);
+  const heatmapSegments = buildHeatmapData(slots || []);
+  const effectiveMinPeople = minPeople ?? 2;
   const slotAreaH =
     TIMELINE_PADDING_TOP +
     rows.length * (BAR_H + ROW_GAP) +
@@ -309,6 +314,38 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
                 className="absolute top-4 bottom-0 w-px bg-gray-300"
                 style={{ left }}
               />
+            );
+          })}
+
+          {/* Heatmap — one segment per distinct time interval in the label row */}
+          {heatmapSegments.map((seg, i) => {
+            const isFirst = i === 0 || heatmapSegments[i - 1].end !== seg.start;
+            const isLast = i === heatmapSegments.length - 1 || heatmapSegments[i + 1].start !== seg.end;
+            const opacity = seg.count >= effectiveMinPeople
+              ? 0.8
+              : (seg.count / effectiveMinPeople) * 0.55;
+            const r = 6;
+            const borderRadius = [
+              isFirst ? `${r}px` : "0",
+              isLast  ? `${r}px` : "0",
+              isLast  ? `${r}px` : "0",
+              isFirst ? `${r}px` : "0",
+            ].join(" ");
+            return (
+              <div
+                key={i}
+                className="absolute pointer-events-none flex items-center justify-center overflow-hidden"
+                style={{
+                  left: (seg.start - DAY_START_MIN) * PX_PER_MIN,
+                  width: (seg.end - seg.start) * PX_PER_MIN,
+                  top: 20,
+                  height: 22,
+                  backgroundColor: `rgba(163,230,53,${opacity})`,
+                  borderRadius,
+                }}
+              >
+                <span className="text-[10px] font-medium text-gray-400 leading-none select-none">{seg.count}</span>
+              </div>
             );
           })}
 

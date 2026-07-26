@@ -196,6 +196,7 @@ export default function CourtView({ court }: Props) {
           onAddSlot={() => setModal({ mode: "add" })}
           userId={userId}
           onSlotTap={(slot) => setModal({ mode: "action", slot })}
+          minPeople={court.min_people}
         />
       </div>
 
