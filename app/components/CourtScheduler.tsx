@@ -6,6 +6,7 @@ import {
   stackSlots,
   buildHeatmapData,
   toMinutes,
+  localDateStr,
   formatDateLabel,
   buildCalendarGrid,
   WEEKDAY_LABELS,
@@ -20,6 +21,17 @@ const DAY_END_MIN = 24 * 60; // 1440
 const HOURS = Array.from({ length: 25 }, (_, i) => i); // 0 … 24
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
+
+function UtilDot({ count, minPeople }: { count: number; minPeople: number }) {
+  if (!count) return <span className="block h-1" />;
+  const opacity = Math.min(count / minPeople, 1);
+  return (
+    <span
+      className="block rounded-full bg-lime-500"
+      style={{ width: 4, height: 4, opacity }}
+    />
+  );
+}
 
 const BAR_H = 36; // px
 const ROW_GAP = 8; // px
@@ -66,9 +78,11 @@ interface MiniCalendarProps {
   selectedDate: Date;
   onSelect: (date: Date) => void;
   onClose: () => void;
+  utilizationByDate?: Map<string, number>;
+  minPeople: number;
 }
 
-function MiniCalendar({ selectedDate, onSelect, onClose }: MiniCalendarProps) {
+function MiniCalendar({ selectedDate, onSelect, onClose, utilizationByDate, minPeople }: MiniCalendarProps) {
   const [viewYear, setViewYear] = useState(selectedDate.getFullYear());
   const [viewMonth, setViewMonth] = useState(selectedDate.getMonth());
   const ref = useRef<HTMLDivElement>(null);
@@ -144,7 +158,7 @@ function MiniCalendar({ selectedDate, onSelect, onClose }: MiniCalendarProps) {
                 key={di}
                 onClick={() => { onSelect(day); onClose(); }}
                 className={[
-                  "mx-auto my-0.5 flex h-8 w-8 items-center justify-center rounded-full text-sm transition-colors",
+                  "mx-auto my-0.5 flex h-9 w-9 flex-col items-center justify-center gap-0.5 rounded-full text-sm transition-colors",
                   isSelected
                     ? "bg-lime-400 text-gray-900"
                     : isToday
@@ -152,7 +166,13 @@ function MiniCalendar({ selectedDate, onSelect, onClose }: MiniCalendarProps) {
                     : "text-gray-700 hover:bg-gray-100",
                 ].join(" ")}
               >
-                {day.getDate()}
+                <span className="leading-none">{day.getDate()}</span>
+                {!isSelected && (
+                  <UtilDot
+                    count={utilizationByDate?.get(localDateStr(day)) ?? 0}
+                    minPeople={minPeople}
+                  />
+                )}
               </button>
             );
           })}
@@ -179,17 +199,25 @@ interface CourtSchedulerProps {
   onSlotTap?: (slot: TimeSlot) => void;
   /** Minimum number of distinct users required for a group-availability highlight. */
   minPeople?: number;
+  /** Distinct-user counts per date (YYYY-MM-DD) for the utilization dots. */
+  utilizationByDate?: Map<string, number>;
 }
 
-export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId, onSlotTap, minPeople }: CourtSchedulerProps = {}) {
+export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId, onSlotTap, minPeople, utilizationByDate }: CourtSchedulerProps = {}) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("heute");
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
 
+  const effectiveMinPeople = minPeople ?? 2;
+
+  const todayStr = localDateStr(new Date());
+  const tomorrowDate = new Date();
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrowStr = localDateStr(tomorrowDate);
+
   const rows = stackSlots(slots || []);
   const heatmapSegments = buildHeatmapData(slots || []);
-  const effectiveMinPeople = minPeople ?? 2;
   const slotAreaH =
     TIMELINE_PADDING_TOP +
     rows.length * (BAR_H + ROW_GAP) +
@@ -225,13 +253,16 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
             onDateChange?.(today);
           }}
           className={[
-            "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+            "flex flex-col items-center rounded-lg border px-3 py-1 text-sm font-medium transition-colors",
             activeTab === "heute"
               ? "border-lime-400 bg-lime-400 text-gray-900"
               : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
           ].join(" ")}
         >
-          Heute
+          <span>Heute</span>
+          {activeTab !== "heute" && (
+            <UtilDot count={utilizationByDate?.get(todayStr) ?? 0} minPeople={effectiveMinPeople} />
+          )}
         </button>
 
         <button
@@ -244,13 +275,16 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
             onDateChange?.(tomorrow);
           }}
           className={[
-            "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+            "flex flex-col items-center rounded-lg border px-3 py-1 text-sm font-medium transition-colors",
             activeTab === "morgen"
               ? "border-lime-400 bg-lime-400 text-gray-900"
               : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
           ].join(" ")}
         >
-          Morgen
+          <span>Morgen</span>
+          {activeTab !== "morgen" && (
+            <UtilDot count={utilizationByDate?.get(tomorrowStr) ?? 0} minPeople={effectiveMinPeople} />
+          )}
         </button>
 
         {/* Date button + calendar dropdown */}
@@ -261,13 +295,13 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
               setCalendarOpen((o) => !o);
             }}
             className={[
-              "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+              "flex flex-col items-center rounded-lg border px-3 py-1 text-sm font-medium transition-colors",
               activeTab === "custom"
                 ? "border-lime-400 bg-lime-400 text-gray-900"
                 : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
             ].join(" ")}
           >
-            {formatDateLabel(selectedDate)}
+            <span>{formatDateLabel(selectedDate)}</span>
           </button>
 
           {calendarOpen && (
@@ -275,6 +309,8 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
               selectedDate={selectedDate}
               onSelect={(d) => { setSelectedDate(d); onDateChange?.(d); }}
               onClose={() => setCalendarOpen(false)}
+              utilizationByDate={utilizationByDate}
+              minPeople={effectiveMinPeople}
             />
           )}
         </div>
