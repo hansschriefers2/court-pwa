@@ -22,14 +22,14 @@ self.addEventListener("push", (event) => {
     payload = { title: "Neuer Slot", body: event.data.text() };
   }
 
-  const { title = "Neuer Slot", body = "", courtSlug } = payload;
+  const { title = "Neuer Slot", body = "", courtSlug, url } = payload;
 
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
       icon: "/icon_1024.png",
       badge: "/icon_1024.png",
-      data: { courtSlug },
+      data: { courtSlug, url },
       // Collapse multiple notifications from the same court into one.
       tag: courtSlug ? `court-${courtSlug}` : "court-slot",
       renotify: true,
@@ -43,7 +43,8 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   const courtSlug = event.notification.data?.courtSlug;
-  const targetUrl = courtSlug ? `/${courtSlug}` : "/";
+  const targetUrl = event.notification.data?.url
+    ?? (courtSlug ? `/${courtSlug}` : "/");
 
   event.waitUntil(
     clients

@@ -74,6 +74,68 @@ export function buildCalendarGrid(year: number, month: number): (Date | null)[][
  * Greedy row-packing: assigns each slot to the first row where it doesn't
  * overlap any existing slot. Input is sorted by startMin inside the function.
  */
+/**
+ * Returns merged time ranges where at least `minPeople` distinct users
+ * have overlapping slots. Uses a sweep-line over all slot boundaries.
+ */
+/**
+ * Returns one segment per distinct time interval, each with a distinct-user
+ * count. Used to render a heatmap in the timeline header.
+ */
+export function buildHeatmapData(
+  slots: TimeSlot[],
+): { start: number; end: number; count: number }[] {
+  if (slots.length === 0) return [];
+
+  const points = [...new Set(slots.flatMap((s) => [s.startMin, s.endMin]))].sort(
+    (a, b) => a - b,
+  );
+
+  return points.slice(0, -1).flatMap((p, i) => {
+    const mid = (p + points[i + 1]) / 2;
+    const count = new Set(
+      slots.filter((s) => s.startMin <= mid && s.endMin > mid).map((s) => s.userId),
+    ).size;
+    return count > 0 ? [{ start: p, end: points[i + 1], count }] : [];
+  });
+}
+
+export function findGroupRanges(
+  slots: TimeSlot[],
+  minPeople: number,
+): { start: number; end: number; count: number }[] {
+  if (slots.length === 0 || minPeople < 2) return [];
+
+  // Collect every unique boundary point
+  const points = [...new Set(slots.flatMap((s) => [s.startMin, s.endMin]))].sort(
+    (a, b) => a - b,
+  );
+
+  const ranges: { start: number; end: number; count: number }[] = [];
+  let inRange = false;
+  let rangeStart = 0;
+  let rangeCount = 0;
+
+  for (let i = 0; i < points.length - 1; i++) {
+    // Sample the midpoint of this interval to find active distinct users
+    const mid = (points[i] + points[i + 1]) / 2;
+    const activeUsers = new Set(
+      slots.filter((s) => s.startMin <= mid && s.endMin > mid).map((s) => s.userId),
+    );
+    const distinctUsers = activeUsers.size;
+
+    if (distinctUsers >= minPeople) {
+      if (!inRange) { inRange = true; rangeStart = points[i]; rangeCount = distinctUsers; }
+      else rangeCount = Math.max(rangeCount, distinctUsers);
+    } else {
+      if (inRange) { inRange = false; ranges.push({ start: rangeStart, end: points[i], count: rangeCount }); }
+    }
+  }
+  if (inRange) ranges.push({ start: rangeStart, end: points[points.length - 1], count: rangeCount });
+
+  return ranges;
+}
+
 export function stackSlots(slots: TimeSlot[]): TimeSlot[][] {
   const sorted = [...slots].sort((a, b) => a.startMin - b.startMin);
   const rows: TimeSlot[][] = [];

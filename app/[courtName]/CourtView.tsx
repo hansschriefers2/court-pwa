@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useUsername } from "@/lib/hooks/useUsername";
 import { useSlots } from "@/lib/hooks/useSlots";
 import { usePushNotifications } from "@/lib/hooks/usePushNotifications";
+import { useDateUtilization } from "@/lib/hooks/useDateUtilization";
 import { addRecentCourt } from "@/lib/hooks/useRecentCourts";
 import CourtScheduler from "@/app/components/CourtScheduler";
 import UsernameModal from "@/app/components/UsernameModal";
@@ -37,6 +38,7 @@ export default function CourtView({ court }: Props) {
     court.id,
     username
   );
+  const utilizationByDate = useDateUtilization(court.id);
   const [modal, setModal] = useState<ModalState>(null);
   const [showIOSInstallModal, setShowIOSInstallModal] = useState(false);
   // Hook must be called before any early return (rules of hooks).
@@ -196,6 +198,8 @@ export default function CourtView({ court }: Props) {
           onAddSlot={() => setModal({ mode: "add" })}
           userId={userId}
           onSlotTap={(slot) => setModal({ mode: "action", slot })}
+          minPeople={court.min_people}
+          utilizationByDate={utilizationByDate}
         />
       </div>
 
