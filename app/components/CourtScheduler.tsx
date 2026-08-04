@@ -215,6 +215,12 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
   const tomorrowDate = new Date();
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
   const tomorrowStr = localDateStr(tomorrowDate);
+  const selectedDateStr = localDateStr(selectedDate);
+  const weekdayLabel = WEEKDAY_LABELS[(selectedDate.getDay() + 6) % 7];
+  const customDateLabel =
+    selectedDateStr === todayStr || selectedDateStr === tomorrowStr
+      ? "Datum wählen"
+      : `${weekdayLabel} ${formatDateLabel(selectedDate)}`;
 
   const rows = stackSlots(slots || []);
   const heatmapSegments = buildHeatmapData(slots || []);
@@ -301,13 +307,24 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
                 : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
             ].join(" ")}
           >
-            <span>{formatDateLabel(selectedDate)}</span>
+            <span>{customDateLabel}</span>
           </button>
 
           {calendarOpen && (
             <MiniCalendar
               selectedDate={selectedDate}
-              onSelect={(d) => { setSelectedDate(d); onDateChange?.(d); }}
+              onSelect={(d) => {
+                const nextDateStr = localDateStr(d);
+                setSelectedDate(d);
+                setActiveTab(
+                  nextDateStr === todayStr
+                    ? "heute"
+                    : nextDateStr === tomorrowStr
+                      ? "morgen"
+                      : "custom",
+                );
+                onDateChange?.(d);
+              }}
               onClose={() => setCalendarOpen(false)}
               utilizationByDate={utilizationByDate}
               minPeople={effectiveMinPeople}
