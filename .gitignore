@@ -34,6 +34,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # supabase local state (contains project ref, pooler URL, org ID)
 supabase/.temp/

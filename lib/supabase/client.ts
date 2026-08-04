@@ -8,7 +8,7 @@ const supabaseKey =
 
 if (!supabaseUrl || !supabaseKey) {
   throw new Error(
-    "Missing NEXT_PUBLIC_SUPABASE_URL and one of NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY / NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables."
+    "Missing Supabase client environment variables. Create .env.local from .env.example and set NEXT_PUBLIC_SUPABASE_URL plus NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY."
   );
 }
 
