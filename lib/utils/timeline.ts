@@ -93,9 +93,7 @@ export function buildHeatmapData(
 
   return points.slice(0, -1).flatMap((p, i) => {
     const mid = (p + points[i + 1]) / 2;
-    const count = new Set(
-      slots.filter((s) => s.startMin <= mid && s.endMin > mid).map((s) => s.userId),
-    ).size;
+    const count = slots.filter((s) => s.startMin <= mid && s.endMin > mid).length;
     return count > 0 ? [{ start: p, end: points[i + 1], count }] : [];
   });
 }
