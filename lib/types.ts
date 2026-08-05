@@ -22,4 +22,17 @@ export interface TimeSlot {
   userId: string; // stable per-device UUID of the creator
   startMin: number; // minutes from midnight
   endMin: number;
+  tentative: boolean;
+  trainingId?: string; // set when this slot is a response to a recurring training
+}
+
+export interface RecurringTraining {
+  id: string;
+  courtId: string;
+  createdByUserId: string;
+  createdByUsername: string;
+  label: string;
+  dayOfWeek: number; // JS convention: 0 = Sunday … 6 = Saturday
+  startMin: number;
+  endMin: number;
 }

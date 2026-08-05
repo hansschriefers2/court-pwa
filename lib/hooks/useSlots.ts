@@ -12,6 +12,8 @@ interface SlotRow {
   start_min: number;
   end_min: number;
   date: string; // YYYY-MM-DD
+  tentative: boolean;
+  training_id: string | null;
 }
 
 function rowToSlot(row: SlotRow): TimeSlot {
@@ -21,6 +23,8 @@ function rowToSlot(row: SlotRow): TimeSlot {
     userId: row.user_id,
     startMin: row.start_min,
     endMin: row.end_min,
+    tentative: row.tentative,
+    ...(row.training_id ? { trainingId: row.training_id } : {}),
   };
 }
 
@@ -53,7 +57,7 @@ export function useSlots(courtId: string, username: string | null) {
 
       const { data, error: err } = await supabase
         .from("slots")
-        .select("id, user_name, user_id, start_min, end_min, date")
+        .select("id, user_name, user_id, start_min, end_min, date, tentative, training_id")
         .eq("court_id", courtId)
         .eq("date", localDateStr(date))
         .order("start_min");
