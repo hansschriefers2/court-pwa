@@ -129,12 +129,12 @@ Deno.serve(async (req: Request) => {
             urgency: "high",
           });
         } catch (err: unknown) {
-          // 404 / 410 means the push subscription has expired — clean it up.
+          // 404 / 410 = expired; 403 = VAPID key mismatch — all are permanently invalid.
           if (
             err !== null &&
             typeof err === "object" &&
             "statusCode" in err &&
-            (err.statusCode === 404 || err.statusCode === 410)
+            (err.statusCode === 403 || err.statusCode === 404 || err.statusCode === 410)
           ) {
             staleIds.push(row.id);
           } else {
@@ -213,7 +213,7 @@ Deno.serve(async (req: Request) => {
                     err !== null &&
                     typeof err === "object" &&
                     "statusCode" in err &&
-                    (err.statusCode === 404 || err.statusCode === 410)
+                    (err.statusCode === 403 || err.statusCode === 404 || err.statusCode === 410)
                   ) {
                     staleGroupIds.push(row.id);
                   } else {

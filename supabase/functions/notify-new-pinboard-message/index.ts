@@ -111,7 +111,7 @@ Deno.serve(async (req: Request) => {
             err !== null &&
             typeof err === "object" &&
             "statusCode" in err &&
-            (err.statusCode === 404 || err.statusCode === 410)
+            (err.statusCode === 403 || err.statusCode === 404 || err.statusCode === 410)
           ) {
             staleIds.push(row.id);
           } else {
