@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { TimeSlot } from "@/lib/types";
+import type { RecurringTraining, TimeSlot } from "@/lib/types";
 import {
   stackSlots,
   buildHeatmapData,
@@ -37,35 +37,107 @@ const BAR_H = 36; // px
 const ROW_GAP = 8; // px
 const TIMELINE_PADDING_TOP = 50; // px — space for hour labels + heatmap bar
 
+// ─── Training helpers ────────────────────────────────────────────────────────
+
+function stackTrainings(trainings: RecurringTraining[]): RecurringTraining[][] {
+  const sorted = [...trainings].sort((a, b) => a.startMin - b.startMin);
+  const rows: RecurringTraining[][] = [];
+  for (const t of sorted) {
+    let placed = false;
+    for (const row of rows) {
+      const overlaps = row.some((r) => r.startMin < t.endMin && r.endMin > t.startMin);
+      if (!overlaps) { row.push(t); placed = true; break; }
+    }
+    if (!placed) rows.push([t]);
+  }
+  return rows;
+}
+
+interface TrainingBarsProps {
+  rows: RecurringTraining[][];
+  slots: TimeSlot[];
+  userId?: string;
+  onTrainingTap?: (training: RecurringTraining) => void;
+  topOffset: number;
+}
+
+function TrainingBars({ rows, slots, userId, onTrainingTap, topOffset }: TrainingBarsProps) {
+  return (
+    <>
+      {rows.map((row, rowIdx) =>
+        row.map((training) => {
+          const left = (training.startMin - DAY_START_MIN) * PX_PER_MIN;
+          const width = (training.endMin - training.startMin) * PX_PER_MIN;
+          const top = topOffset + rowIdx * (BAR_H + ROW_GAP);
+          const hasResponse = userId
+            ? slots.some((s) => s.trainingId === training.id && s.userId === userId)
+            : false;
+          return (
+            <div
+              key={training.id}
+              data-testid="training-item"
+              onClick={() => onTrainingTap?.(training)}
+              className={[
+                "absolute flex items-center gap-1.5 rounded-full border-2 border-dashed px-3 text-sm font-medium select-none cursor-pointer active:scale-95 transition-transform overflow-hidden",
+                hasResponse
+                  ? "border-violet-300 bg-violet-100 text-violet-600"
+                  : "border-violet-500 bg-violet-50 text-violet-800",
+              ].join(" ")}
+              style={{ left, width, top, height: BAR_H }}
+            >
+              <span className="h-2 w-2 shrink-0 rounded-full bg-violet-500" aria-hidden="true" />
+              <span className="truncate">{training.label}</span>
+            </div>
+          );
+        })
+      )}
+    </>
+  );
+}
+
+// ─── Slot bars ────────────────────────────────────────────────────────────────
+
 interface SlotBarsProps {
   rows: TimeSlot[][];
   userId?: string;
   onSlotTap?: (slot: TimeSlot) => void;
+  topOffset: number;
 }
 
-function SlotBars({ rows, userId, onSlotTap }: SlotBarsProps) {
+function SlotBars({ rows, userId, onSlotTap, topOffset }: SlotBarsProps) {
   return (
     <>
       {rows.map((row, rowIdx) =>
         row.map((slot) => {
           const left = (slot.startMin - DAY_START_MIN) * PX_PER_MIN;
           const width = (slot.endMin - slot.startMin) * PX_PER_MIN;
-          const top = TIMELINE_PADDING_TOP + rowIdx * (BAR_H + ROW_GAP);
+          const top = topOffset + rowIdx * (BAR_H + ROW_GAP);
           const isOwn = userId && slot.userId === userId;
+          const isTentative = slot.tentative;
+          const displayName = slot.name;
           return (
             <div
               key={slot.id}
               data-testid="slot-item"
               onClick={isOwn ? () => onSlotTap?.(slot) : undefined}
               className={[
-                "absolute flex items-center justify-center rounded-full border text-sm font-medium select-none",
-                isOwn
+                "absolute flex items-center justify-center gap-1.5 rounded-full border text-sm font-medium select-none overflow-hidden px-3",
+                isOwn && isTentative
+                  ? "border-amber-400 bg-amber-50 text-amber-800 cursor-pointer active:scale-95 transition-transform"
+                  : isOwn
                   ? "border-lime-400 bg-lime-50 text-gray-800 cursor-pointer active:scale-95 transition-transform"
+                  : isTentative
+                  ? "border-amber-300 bg-amber-50 text-amber-700"
                   : "border-gray-300 bg-white text-gray-800",
               ].join(" ")}
               style={{ left, width, top, height: BAR_H }}
             >
-              {slot.name}
+              <span className="truncate">{displayName}</span>
+              {isTentative && (
+                <span className="shrink-0 rounded-full bg-amber-200 px-1 py-0.5 text-[10px] font-semibold leading-none text-amber-700">
+                  ?
+                </span>
+              )}
             </div>
           );
         })
@@ -201,9 +273,13 @@ interface CourtSchedulerProps {
   minPeople?: number;
   /** Distinct-user counts per date (YYYY-MM-DD) for the utilization dots. */
   utilizationByDate?: Map<string, number>;
+  /** Recurring training templates matching the currently viewed weekday. */
+  trainings?: RecurringTraining[];
+  /** Called when the user taps a training bar. */
+  onTrainingTap?: (training: RecurringTraining) => void;
 }
 
-export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId, onSlotTap, minPeople, utilizationByDate }: CourtSchedulerProps = {}) {
+export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId, onSlotTap, minPeople, utilizationByDate, trainings, onTrainingTap }: CourtSchedulerProps = {}) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("heute");
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
@@ -224,8 +300,14 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
 
   const rows = stackSlots(slots || []);
   const heatmapSegments = buildHeatmapData(slots || []);
+  const trainingRows = stackTrainings(trainings || []);
+  const trainingAreaH =
+    trainingRows.length > 0
+      ? trainingRows.length * (BAR_H + ROW_GAP) + ROW_GAP
+      : 0;
+  const slotOffset = TIMELINE_PADDING_TOP + trainingAreaH;
   const slotAreaH =
-    TIMELINE_PADDING_TOP +
+    slotOffset +
     rows.length * (BAR_H + ROW_GAP) +
     ROW_GAP; // total inner height
 
@@ -402,8 +484,19 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
             );
           })}
 
+          {/* Training bars */}
+          {trainingRows.length > 0 && (
+            <TrainingBars
+              rows={trainingRows}
+              slots={slots || []}
+              userId={userId}
+              onTrainingTap={onTrainingTap}
+              topOffset={TIMELINE_PADDING_TOP}
+            />
+          )}
+
           {/* Slot bars */}
-          <SlotBars rows={rows} userId={userId} onSlotTap={onSlotTap} />
+          <SlotBars rows={rows} userId={userId} onSlotTap={onSlotTap} topOffset={slotOffset} />
         </div>
       </div>
 

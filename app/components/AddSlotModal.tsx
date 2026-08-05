@@ -16,7 +16,7 @@ interface Props {
 }
 
 export default function AddSlotModal({ court, username, userId, date, onClose, editSlot }: Props) {
-  const { startTime, setStartTime, endTime, setEndTime, displayName, setDisplayName, saving, error, submit } =
+  const { startTime, setStartTime, endTime, setEndTime, displayName, setDisplayName, tentative, setTentative, saving, error, submit } =
     useAddSlot({ courtId: court.id, username, userId, date, onSuccess: onClose, editSlot });
 
   return (
@@ -47,6 +47,33 @@ export default function AddSlotModal({ court, username, userId, date, onClose, e
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-lime-400"
           />
         </label>
+
+        {/* Tentative toggle */}
+        <div className="mb-4">
+          <span className="mb-1.5 block text-xs font-medium text-gray-500">Zusage</span>
+          <div className="flex overflow-hidden rounded-lg border border-gray-300">
+            <button
+              type="button"
+              onClick={() => setTentative(false)}
+              className={[
+                "flex-1 py-2 text-sm font-medium transition-colors",
+                !tentative ? "bg-lime-400 text-gray-900" : "bg-white text-gray-600 hover:bg-gray-50",
+              ].join(" ")}
+            >
+              Sicher
+            </button>
+            <button
+              type="button"
+              onClick={() => setTentative(true)}
+              className={[
+                "flex-1 border-l border-gray-300 py-2 text-sm font-medium transition-colors",
+                tentative ? "bg-amber-100 text-amber-800" : "bg-white text-gray-600 hover:bg-gray-50",
+              ].join(" ")}
+            >
+              Vielleicht
+            </button>
+          </div>
+        </div>
 
         {/* Start time */}
         <label className="mb-4 block">

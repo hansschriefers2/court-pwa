@@ -137,7 +137,8 @@ test.describe("Court App – main flow", () => {
   test("5 – post a message on the Pinnwand and remove it", async ({ page }) => {
     await setupPage(page, COURT_SLUG);
 
-    // Navigate to Pinnwand via header button
+    // Pinnwand is inside the ⋮ menu
+    await page.getByRole("button", { name: "Menü" }).click();
     await page.getByRole("link", { name: "Pinnwand" }).click();
     await expect(page).toHaveURL(`/${COURT_SLUG}/pinnwand`, { timeout: 10_000 });
 
@@ -155,5 +156,55 @@ test.describe("Court App – main flow", () => {
 
     // Card must be gone
     await expect(page.getByText(MESSAGE)).not.toBeVisible({ timeout: 10_000 });
+  });
+
+  // ── 6. Create training + join ────────────────────────────────────────────
+  test("6 – create a recurring training and join it", async ({ page }) => {
+    await setupPage(page, COURT_SLUG);
+
+    // Open ⋮ menu → "Trainings verwalten"
+    await page.getByRole("button", { name: "Menü" }).click();
+    await page.getByRole("button", { name: "Trainings verwalten" }).click();
+
+    const manageDialog = page.getByRole("dialog", { name: "Trainings verwalten" });
+    await expect(manageDialog).toBeVisible();
+
+    // Open inline create form
+    await manageDialog.getByRole("button", { name: "Neues Training" }).click();
+
+    // Select today's weekday so the training is visible in the current day view
+    const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+    const todayLabel = WEEKDAYS[new Date().getDay()];
+    await manageDialog.getByRole("button", { name: todayLabel }).click();
+
+    // Time inputs in the inline form have no labels — select by type
+    const timeInputs = manageDialog.locator('input[type="time"]');
+    await timeInputs.nth(0).fill("14:00");
+    await timeInputs.nth(1).fill("16:00");
+    await manageDialog.getByRole("button", { name: "Speichern" }).click();
+
+    // Close the manage modal to reveal the timeline
+    await manageDialog.getByRole("button", { name: "Schließen" }).click();
+    await expect(manageDialog).not.toBeVisible();
+
+    // Training bar must appear in the timeline
+    const trainingBar = page.locator('[data-testid="training-item"]').first();
+    await expect(trainingBar).toBeVisible({ timeout: 15_000 });
+
+    // Click it — response modal should appear
+    await trainingBar.click();
+    const responseDialog = page.getByRole("dialog");
+    await expect(responseDialog).toBeVisible();
+
+    // Join the training
+    await responseDialog.getByRole("button", { name: "Ich bin dabei" }).click();
+    await expect(responseDialog).not.toBeVisible();
+
+    // A slot for the current user should now appear in the timeline
+    const slotEntry = page
+      .locator('[data-testid="slot-item"]')
+      .filter({ hasText: USERNAME })
+      .first();
+    await expect(slotEntry).toBeVisible({ timeout: 15_000 });
   });
 });
