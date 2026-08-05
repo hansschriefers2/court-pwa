@@ -28,7 +28,7 @@ self.addEventListener("push", (event) => {
     self.registration.showNotification(title, {
       body,
       icon: "/icon_1024.png",
-      badge: "/icon_1024.png",
+      badge: "/badge-96.png",
       data: { courtSlug, url },
       // Collapse multiple notifications from the same court into one.
       tag: courtSlug ? `court-${courtSlug}` : "court-slot",
