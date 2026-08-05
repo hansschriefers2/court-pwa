@@ -66,6 +66,30 @@ export function usePushNotifications(courtId: string, userId = "", ready = false
           setIsSubscribed(false);
           return;
         }
+
+        // If the subscription was created with a different VAPID key it is
+        // permanently invalid. Unsubscribe, purge DB rows, clear asked-flags.
+        const existingKey = sub.options?.applicationServerKey;
+        if (existingKey) {
+          const current = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+          const existing = new Uint8Array(existingKey as ArrayBuffer);
+          const mismatch =
+            current.length !== existing.length ||
+            current.some((b, i) => b !== existing[i]);
+          if (mismatch) {
+            await sub.unsubscribe();
+            await supabase
+              .from("subscriptions")
+              .delete()
+              .filter("subscription_json->>endpoint", "eq", sub.endpoint);
+            for (const k of Object.keys(localStorage)) {
+              if (k.startsWith("notify-asked-")) localStorage.removeItem(k);
+            }
+            setIsSubscribed(false);
+            return;
+          }
+        }
+
         // A browser-level push subscription exists — but the user may have
         // opted out of THIS court specifically. Check the DB row.
         const { count } = await supabase
