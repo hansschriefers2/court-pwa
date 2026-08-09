@@ -20,7 +20,7 @@ import type { Court, RecurringTraining, TimeSlot } from "@/lib/types";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ModalState =
-  | { mode: "add" }
+  | { mode: "add"; copyFrom?: TimeSlot }
   | { mode: "action"; slot: TimeSlot }
   | { mode: "edit"; slot: TimeSlot }
   | { mode: "training-manage" }
@@ -278,6 +278,7 @@ export default function CourtView({ court }: Props) {
           onAddSlot={() => setModal({ mode: "add" })}
           userId={userId}
           onSlotTap={(slot) => setModal({ mode: "action", slot })}
+          onForeignSlotTap={(slot) => setModal({ mode: "add", copyFrom: slot })}
           minPeople={court.min_people}
           utilizationByDate={utilizationByDate}
           trainings={dailyTrainings}
@@ -303,6 +304,7 @@ export default function CourtView({ court }: Props) {
           userId={userId}
           date={currentDate}
           editSlot={modal.mode === "edit" ? modal.slot : undefined}
+          copyFrom={modal.mode === "add" ? modal.copyFrom : undefined}
           onClose={() => setModal(null)}
         />
       )}

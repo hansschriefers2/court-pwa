@@ -10,6 +10,7 @@ interface Options {
   date: Date;
   onSuccess: () => void;
   editSlot?: TimeSlot;
+  copyFrom?: TimeSlot;
 }
 
 function pushEndTime(timeStr: string, minutes: number): string {
@@ -20,12 +21,12 @@ function pushEndTime(timeStr: string, minutes: number): string {
  * Manages the "add/edit slot" form: field state, validation, and the Supabase insert/update.
  * The caller (AddSlotModal) only handles rendering.
  */
-export function useAddSlot({ courtId, username, userId, date, onSuccess, editSlot }: Options) {
+export function useAddSlot({ courtId, username, userId, date, onSuccess, editSlot, copyFrom }: Options) {
   const [startTime, setStartTimeRaw] = useState(() =>
-    editSlot ? minToTimeStr(editSlot.startMin) : defaultStartTime()
+    editSlot ? minToTimeStr(editSlot.startMin) : copyFrom ? minToTimeStr(copyFrom.startMin) : defaultStartTime()
   );
   const [endTime, setEndTime] = useState(() =>
-    editSlot ? minToTimeStr(editSlot.endMin) : pushEndTime(defaultStartTime(), 60)
+    editSlot ? minToTimeStr(editSlot.endMin) : copyFrom ? minToTimeStr(copyFrom.endMin) : pushEndTime(defaultStartTime(), 60)
   );
   const [displayName, setDisplayName] = useState(editSlot ? editSlot.name : username);
   const [status, setStatus] = useState<SlotStatus>(() => editSlot?.status ?? 'accepted');
