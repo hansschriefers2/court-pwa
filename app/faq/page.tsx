@@ -1,10 +1,15 @@
 import Link from "next/link";
 import FAQAccordion from "./FAQAccordion";
 import ClearDataButton from "./ClearDataButton";
+import InstallInstructions from "./InstallInstructions";
 
 export const metadata = { title: "FAQ – Court" };
 
 const FAQS = [
+  {
+    q: "Wie installiere ich Court als App?",
+    a: <InstallInstructions />,
+  },
   {
     q: "Was ist Court?",
     a: "Court ist eine einfache App, mit der du und deine Gruppe Verfügbarkeiten für euren Platz eintragen und auf einen Blick sehen könnt, wer wann Zeit hat – ganz ohne Registrierung.",
