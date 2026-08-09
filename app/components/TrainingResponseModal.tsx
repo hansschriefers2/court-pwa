@@ -20,7 +20,7 @@ export default function TrainingResponseModal({ training, date, userId, username
   const [error, setError] = useState<string | null>(null);
   const timeLabel = `${minToTimeStr(training.startMin)} – ${minToTimeStr(training.endMin)}`;
 
-  async function respond(type: "join" | "tentative") {
+  async function respond(type: "join" | "tentative" | "declined") {
     setSaving(true);
     setError(null);
     const { error: insertError } = await supabase.from("slots").insert({
@@ -30,7 +30,7 @@ export default function TrainingResponseModal({ training, date, userId, username
       date: localDateStr(date),
       start_min: training.startMin,
       end_min: training.endMin,
-      tentative: type === "tentative",
+      status: type === "join" ? "accepted" : type,
       training_id: training.id,
     });
     if (insertError) {
@@ -80,8 +80,9 @@ export default function TrainingResponseModal({ training, date, userId, username
           </button>
           <button
             type="button"
-            onClick={onClose}
-            className="w-full rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            disabled={saving}
+            onClick={() => respond("declined")}
+            className="w-full rounded-lg bg-red-50 py-2.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
           >
             Nicht dabei
           </button>

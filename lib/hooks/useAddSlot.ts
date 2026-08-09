@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { localDateStr, defaultStartTime, minToTimeStr, timeStrToMin } from "@/lib/utils/timeline";
-import type { TimeSlot } from "@/lib/types";
+import type { SlotStatus, TimeSlot } from "@/lib/types";
 
 interface Options {
   courtId: string;
@@ -28,7 +28,7 @@ export function useAddSlot({ courtId, username, userId, date, onSuccess, editSlo
     editSlot ? minToTimeStr(editSlot.endMin) : pushEndTime(defaultStartTime(), 60)
   );
   const [displayName, setDisplayName] = useState(editSlot ? editSlot.name : username);
-  const [tentative, setTentative] = useState(() => editSlot?.tentative ?? false);
+  const [status, setStatus] = useState<SlotStatus>(() => editSlot?.status ?? 'accepted');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,7 +60,7 @@ export function useAddSlot({ courtId, username, userId, date, onSuccess, editSlo
     if (editSlot) {
       const { error: updateError } = await supabase
         .from("slots")
-        .update({ start_min: startMin, end_min: endMin, user_name: storedName, tentative })
+        .update({ start_min: startMin, end_min: endMin, user_name: storedName, status })
         .eq("id", editSlot.id);
 
       if (updateError) {
@@ -76,7 +76,7 @@ export function useAddSlot({ courtId, username, userId, date, onSuccess, editSlo
         date: localDateStr(date),
         start_min: startMin,
         end_min: endMin,
-        tentative,
+        status,
       });
 
       if (insertError) {
@@ -90,5 +90,5 @@ export function useAddSlot({ courtId, username, userId, date, onSuccess, editSlo
     onSuccess();
   }
 
-  return { startTime, setStartTime, endTime, setEndTime, displayName, setDisplayName, tentative, setTentative, saving, error, submit };
+  return { startTime, setStartTime, endTime, setEndTime, displayName, setDisplayName, status, setStatus, saving, error, submit };
 }

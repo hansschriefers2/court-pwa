@@ -20,6 +20,7 @@ export function useDateUtilization(courtId: string): Map<string, number> {
       .from("slots")
       .select("date, user_id")
       .eq("court_id", courtId)
+      .eq("status", "accepted")
       .gte("date", localDateStr(today))
       .lte("date", localDateStr(future))
       .then(({ data }) => {

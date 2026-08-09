@@ -85,15 +85,16 @@ export function buildCalendarGrid(year: number, month: number): (Date | null)[][
 export function buildHeatmapData(
   slots: TimeSlot[],
 ): { start: number; end: number; count: number }[] {
-  if (slots.length === 0) return [];
+  const accepted = slots.filter((s) => s.status === 'accepted');
+  if (accepted.length === 0) return [];
 
-  const points = [...new Set(slots.flatMap((s) => [s.startMin, s.endMin]))].sort(
+  const points = [...new Set(accepted.flatMap((s) => [s.startMin, s.endMin]))].sort(
     (a, b) => a - b,
   );
 
   return points.slice(0, -1).flatMap((p, i) => {
     const mid = (p + points[i + 1]) / 2;
-    const count = slots.filter((s) => s.startMin <= mid && s.endMin > mid).length;
+    const count = accepted.filter((s) => s.startMin <= mid && s.endMin > mid).length;
     return count > 0 ? [{ start: p, end: points[i + 1], count }] : [];
   });
 }

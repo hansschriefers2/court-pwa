@@ -16,7 +16,7 @@ interface Props {
 }
 
 export default function AddSlotModal({ court, username, userId, date, onClose, editSlot }: Props) {
-  const { startTime, setStartTime, endTime, setEndTime, displayName, setDisplayName, tentative, setTentative, saving, error, submit } =
+  const { startTime, setStartTime, endTime, setEndTime, displayName, setDisplayName, status, setStatus, saving, error, submit } =
     useAddSlot({ courtId: court.id, username, userId, date, onSuccess: onClose, editSlot });
 
   return (
@@ -48,29 +48,39 @@ export default function AddSlotModal({ court, username, userId, date, onClose, e
           />
         </label>
 
-        {/* Tentative toggle */}
+        {/* Status toggle */}
         <div className="mb-4">
           <span className="mb-1.5 block text-xs font-medium text-gray-500">Zusage</span>
           <div className="flex overflow-hidden rounded-lg border border-gray-300">
             <button
               type="button"
-              onClick={() => setTentative(false)}
+              onClick={() => setStatus('accepted')}
               className={[
                 "flex-1 py-2 text-sm font-medium transition-colors",
-                !tentative ? "bg-lime-400 text-gray-900" : "bg-white text-gray-600 hover:bg-gray-50",
+                status === 'accepted' ? "bg-lime-400 text-gray-900" : "bg-white text-gray-600 hover:bg-gray-50",
               ].join(" ")}
             >
               Sicher
             </button>
             <button
               type="button"
-              onClick={() => setTentative(true)}
+              onClick={() => setStatus('tentative')}
               className={[
                 "flex-1 border-l border-gray-300 py-2 text-sm font-medium transition-colors",
-                tentative ? "bg-amber-100 text-amber-800" : "bg-white text-gray-600 hover:bg-gray-50",
+                status === 'tentative' ? "bg-amber-100 text-amber-800" : "bg-white text-gray-600 hover:bg-gray-50",
               ].join(" ")}
             >
               Vielleicht
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatus('declined')}
+              className={[
+                "flex-1 border-l border-gray-300 py-2 text-sm font-medium transition-colors",
+                status === 'declined' ? "bg-red-100 text-red-700" : "bg-white text-gray-600 hover:bg-gray-50",
+              ].join(" ")}
+            >
+              Nicht dabei
             </button>
           </div>
         </div>

@@ -16,13 +16,15 @@ export interface PinboardMessage {
   createdAt: string;
 }
 
+export type SlotStatus = 'accepted' | 'tentative' | 'declined';
+
 export interface TimeSlot {
   id: string;  // UUID from Supabase (or synthetic string for sample data)
   name: string;
   userId: string; // stable per-device UUID of the creator
   startMin: number; // minutes from midnight
   endMin: number;
-  tentative: boolean;
+  status: SlotStatus;
   trainingId?: string; // set when this slot is a response to a recurring training
 }
 
