@@ -101,10 +101,11 @@ interface SlotBarsProps {
   rows: TimeSlot[][];
   userId?: string;
   onSlotTap?: (slot: TimeSlot) => void;
+  onForeignSlotTap?: (slot: TimeSlot) => void;
   topOffset: number;
 }
 
-function SlotBars({ rows, userId, onSlotTap, topOffset }: SlotBarsProps) {
+function SlotBars({ rows, userId, onSlotTap, onForeignSlotTap, topOffset }: SlotBarsProps) {
   return (
     <>
       {rows.map((row, rowIdx) =>
@@ -119,7 +120,7 @@ function SlotBars({ rows, userId, onSlotTap, topOffset }: SlotBarsProps) {
             <div
               key={slot.id}
               data-testid="slot-item"
-              onClick={isOwn ? () => onSlotTap?.(slot) : undefined}
+              onClick={isOwn ? () => onSlotTap?.(slot) : () => onForeignSlotTap?.(slot)}
               className={[
                 "absolute flex items-center justify-center gap-1.5 rounded-full border text-sm font-medium select-none overflow-hidden px-3",
                 isOwn && status === 'declined'
@@ -131,8 +132,8 @@ function SlotBars({ rows, userId, onSlotTap, topOffset }: SlotBarsProps) {
                   : status === 'declined'
                   ? "border-red-200 bg-red-50 text-red-500"
                   : status === 'tentative'
-                  ? "border-amber-300 bg-amber-50 text-amber-700"
-                  : "border-gray-300 bg-white text-gray-800",
+                  ? "border-amber-300 bg-amber-50 text-amber-700 cursor-pointer active:scale-95 transition-transform"
+                  : "border-gray-300 bg-white text-gray-800 cursor-pointer active:scale-95 transition-transform",
               ].join(" ")}
               style={{ left, width, top, height: BAR_H }}
             >
@@ -278,6 +279,8 @@ interface CourtSchedulerProps {
   userId?: string;
   /** Called when the user taps one of their own slots. */
   onSlotTap?: (slot: TimeSlot) => void;
+  /** Called when the user taps a slot belonging to someone else. */
+  onForeignSlotTap?: (slot: TimeSlot) => void;
   /** Minimum number of distinct users required for a group-availability highlight. */
   minPeople?: number;
   /** Distinct-user counts per date (YYYY-MM-DD) for the utilization dots. */
@@ -288,7 +291,7 @@ interface CourtSchedulerProps {
   onTrainingTap?: (training: RecurringTraining) => void;
 }
 
-export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId, onSlotTap, minPeople, utilizationByDate, trainings, onTrainingTap }: CourtSchedulerProps = {}) {
+export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId, onSlotTap, onForeignSlotTap, minPeople, utilizationByDate, trainings, onTrainingTap }: CourtSchedulerProps = {}) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("heute");
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
@@ -505,7 +508,7 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
           )}
 
           {/* Slot bars */}
-          <SlotBars rows={rows} userId={userId} onSlotTap={onSlotTap} topOffset={slotOffset} />
+          <SlotBars rows={rows} userId={userId} onSlotTap={onSlotTap} onForeignSlotTap={onForeignSlotTap} topOffset={slotOffset} />
         </div>
       </div>
 

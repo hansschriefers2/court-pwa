@@ -13,11 +13,12 @@ interface Props {
   date: Date;
   onClose: () => void;
   editSlot?: TimeSlot;
+  copyFrom?: TimeSlot;
 }
 
-export default function AddSlotModal({ court, username, userId, date, onClose, editSlot }: Props) {
+export default function AddSlotModal({ court, username, userId, date, onClose, editSlot, copyFrom }: Props) {
   const { startTime, setStartTime, endTime, setEndTime, displayName, setDisplayName, status, setStatus, saving, error, submit } =
-    useAddSlot({ courtId: court.id, username, userId, date, onSuccess: onClose, editSlot });
+    useAddSlot({ courtId: court.id, username, userId, date, onSuccess: onClose, editSlot, copyFrom });
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center">
