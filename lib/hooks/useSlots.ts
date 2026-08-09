@@ -144,5 +144,15 @@ export function useSlots(courtId: string, username: string | null) {
     setSlots((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
+  // ── Re-fetch on visibility (Android PWA resume / notification tap) ─────────
+  useEffect(() => {
+    if (!username) return;
+    function handleVisibility() {
+      if (document.visibilityState === "visible") fetchSlots(currentDateRef.current);
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [username, fetchSlots]);
+
   return { slots, loading, error, currentDate, handleDateChange, deleteSlot };
 }
