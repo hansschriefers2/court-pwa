@@ -70,7 +70,7 @@ function TrainingBars({ rows, slots, userId, onTrainingTap, topOffset }: Trainin
           const width = (training.endMin - training.startMin) * PX_PER_MIN;
           const top = topOffset + rowIdx * (BAR_H + ROW_GAP);
           const hasResponse = userId
-            ? slots.some((s) => s.trainingId === training.id && s.userId === userId)
+            ? slots.some((s) => s.trainingId === training.id && s.userId === userId && s.status !== 'declined')
             : false;
           return (
             <div
@@ -113,7 +113,7 @@ function SlotBars({ rows, userId, onSlotTap, topOffset }: SlotBarsProps) {
           const width = (slot.endMin - slot.startMin) * PX_PER_MIN;
           const top = topOffset + rowIdx * (BAR_H + ROW_GAP);
           const isOwn = userId && slot.userId === userId;
-          const isTentative = slot.tentative;
+          const { status } = slot;
           const displayName = slot.name;
           return (
             <div
@@ -122,20 +122,29 @@ function SlotBars({ rows, userId, onSlotTap, topOffset }: SlotBarsProps) {
               onClick={isOwn ? () => onSlotTap?.(slot) : undefined}
               className={[
                 "absolute flex items-center justify-center gap-1.5 rounded-full border text-sm font-medium select-none overflow-hidden px-3",
-                isOwn && isTentative
+                isOwn && status === 'declined'
+                  ? "border-red-300 bg-red-50 text-red-600 cursor-pointer active:scale-95 transition-transform"
+                  : isOwn && status === 'tentative'
                   ? "border-amber-400 bg-amber-50 text-amber-800 cursor-pointer active:scale-95 transition-transform"
                   : isOwn
                   ? "border-lime-400 bg-lime-50 text-gray-800 cursor-pointer active:scale-95 transition-transform"
-                  : isTentative
+                  : status === 'declined'
+                  ? "border-red-200 bg-red-50 text-red-500"
+                  : status === 'tentative'
                   ? "border-amber-300 bg-amber-50 text-amber-700"
                   : "border-gray-300 bg-white text-gray-800",
               ].join(" ")}
               style={{ left, width, top, height: BAR_H }}
             >
               <span className="truncate">{displayName}</span>
-              {isTentative && (
+              {status === 'tentative' && (
                 <span className="shrink-0 rounded-full bg-amber-200 px-1 py-0.5 text-[10px] font-semibold leading-none text-amber-700">
                   ?
+                </span>
+              )}
+              {status === 'declined' && (
+                <span className="shrink-0 rounded-full bg-red-200 px-1 py-0.5 text-[10px] font-semibold leading-none text-red-600">
+                  ✗
                 </span>
               )}
             </div>

@@ -12,7 +12,7 @@ interface SlotRow {
   start_min: number;
   end_min: number;
   date: string; // YYYY-MM-DD
-  tentative: boolean;
+  status: string;
   training_id: string | null;
 }
 
@@ -23,7 +23,7 @@ function rowToSlot(row: SlotRow): TimeSlot {
     userId: row.user_id,
     startMin: row.start_min,
     endMin: row.end_min,
-    tentative: row.tentative,
+    status: (row.status as TimeSlot['status']) ?? 'accepted',
     ...(row.training_id ? { trainingId: row.training_id } : {}),
   };
 }
@@ -57,7 +57,7 @@ export function useSlots(courtId: string, username: string | null) {
 
       const { data, error: err } = await supabase
         .from("slots")
-        .select("id, user_name, user_id, start_min, end_min, date, tentative, training_id")
+        .select("id, user_name, user_id, start_min, end_min, date, status, training_id")
         .eq("court_id", courtId)
         .eq("date", localDateStr(date))
         .order("start_min");
@@ -143,6 +143,16 @@ export function useSlots(courtId: string, username: string | null) {
     }
     setSlots((prev) => prev.filter((s) => s.id !== id));
   }, []);
+
+  // ── Re-fetch on visibility (Android PWA resume / notification tap) ─────────
+  useEffect(() => {
+    if (!username) return;
+    function handleVisibility() {
+      if (document.visibilityState === "visible") fetchSlots(currentDateRef.current);
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [username, fetchSlots]);
 
   return { slots, loading, error, currentDate, handleDateChange, deleteSlot };
 }

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 
 interface FAQ {
   q: string;
-  a: string;
+  a: React.ReactNode;
 }
 
 export default function FAQAccordion({ faqs }: { faqs: FAQ[] }) {

@@ -220,6 +220,21 @@ export default function CourtView({ court }: Props) {
                 </span>
                 Trainings verwalten
               </button>
+
+              <div className="my-1.5 border-t border-gray-100" />
+
+              {/* FAQ */}
+              <Link
+                href="/faq"
+                onClick={() => setMenuOpen(false)}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0 text-gray-400">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                FAQ & Hilfe
+              </Link>
             </div>
           )}
         </div>
