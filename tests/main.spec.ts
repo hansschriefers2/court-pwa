@@ -20,12 +20,6 @@ const COURT_SLUG = `pw-test-${TS}`;
 const USERNAME = "PW-Tester";
 const TEST_USER_ID = "pw-test-uid-fixed";
 
-/** Cookies that skip the UsernameModal. */
-const AUTH_COOKIES = [
-  { name: "court_username", value: USERNAME, domain: "localhost", path: "/" },
-  { name: "court_user_id", value: TEST_USER_ID, domain: "localhost", path: "/" },
-];
-
 /** iPhone 15 user-agent — makes detectPlatform() return "ios". */
 const IPHONE_UA =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) " +
@@ -74,6 +68,22 @@ test.describe("Court App – main flow", () => {
 
     await expect(dialog).not.toBeVisible();
     await expect(page.getByRole("banner")).toBeVisible();
+  });
+
+  test("2b – iPhone install guidance appears before the first slot", async ({ page }) => {
+    await page.addInitScript((userAgent) => {
+      Object.defineProperty(navigator, "userAgent", { value: userAgent });
+    }, IPHONE_UA);
+    await setupPage(page, COURT_SLUG);
+
+    await expect(page.getByText("Browser-Version: Benachrichtigungen nicht verfügbar")).toBeVisible();
+    await page.getByRole("button", { name: "Neuen Slot hinzufügen" }).click();
+
+    const installDialog = page.getByRole("dialog", { name: "Court installieren" });
+    await expect(installDialog).toBeVisible();
+    await installDialog.getByRole("button", { name: "Ohne Benachrichtigungen fortfahren" }).click();
+
+    await expect(page.getByRole("dialog", { name: "Neuer Slot" })).toBeVisible();
   });
 
   // ── 3. Create slot ───────────────────────────────────────────────────────

@@ -1,14 +1,18 @@
 
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePinboard } from "@/lib/hooks/usePinboard";
 import { useUsername } from "@/lib/hooks/useUsername";
 import UsernameModal from "@/app/components/UsernameModal";
+import { detectPlatform, isStandalone } from "@/app/components/PWAInstallPrompt";
 import type { Court, PinboardMessage } from "@/lib/types";
 
 const NOTE_STYLE = { bg: "#fef9c3", border: "#fde047" }; // yellow-100 / yellow-300
+const subscribeToDisplayMode = () => () => {};
+const getServerPlatform = () => null;
+const getServerStandalone = () => false;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -85,6 +89,8 @@ export default function PinboardView({ court }: Props) {
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const platform = useSyncExternalStore(subscribeToDisplayMode, detectPlatform, getServerPlatform);
+  const standalone = useSyncExternalStore(subscribeToDisplayMode, isStandalone, getServerStandalone);
 
   if (!ready) return null;
 
@@ -143,6 +149,13 @@ export default function PinboardView({ court }: Props) {
         className="min-h-0 flex-1 overflow-y-auto"
         style={{ background: "#f0fdf4" }}
       >
+        {platform === "ios" && !standalone && (
+          <div className="border-b border-lime-200 bg-white px-4 py-3 text-xs leading-relaxed text-gray-700">
+            <strong className="font-semibold text-gray-900">Benachrichtigungen auf dem iPhone:</strong>{" "}
+            Link in Safari öffnen, Teilen → Zum Home-Bildschirm, dann Court über das neue App-Symbol öffnen.
+          </div>
+        )}
+
         {/* ── Notes masonry ─────────────────────────────────────────────── */}
         {loading ? (
           <p className="py-8 text-center text-sm text-lime-900/50">Laden…</p>

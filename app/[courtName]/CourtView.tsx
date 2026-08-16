@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useUsername } from "@/lib/hooks/useUsername";
 import { useSlots } from "@/lib/hooks/useSlots";
@@ -27,6 +27,10 @@ type ModalState =
   | { mode: "training-response"; training: RecurringTraining }
   | null;
 
+const subscribeToDisplayMode = () => () => {};
+const getServerPlatform = () => null;
+const getServerStandalone = () => false;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -47,6 +51,9 @@ export default function CourtView({ court }: Props) {
   const utilizationByDate = useDateUtilization(court.id);
   const [modal, setModal] = useState<ModalState>(null);
   const [showIOSInstallModal, setShowIOSInstallModal] = useState(false);
+  const [continueToAddSlot, setContinueToAddSlot] = useState(false);
+  const platform = useSyncExternalStore(subscribeToDisplayMode, detectPlatform, getServerPlatform);
+  const standalone = useSyncExternalStore(subscribeToDisplayMode, isStandalone, getServerStandalone);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -71,23 +78,40 @@ export default function CourtView({ court }: Props) {
       setModal({ mode: "training-response", training });
     }
   }
-  // Hook must be called before any early return (rules of hooks).
-  // Pass !!username so the auto-subscribe prompt only fires once the user has a name.
-  const { isSupported, isSubscribed, isLoading: notifyLoading, isDenied, toggle: toggleNotify } =
-    usePushNotifications(court.id, userId, !!username);
+  const { isSupported, isInitialized: notifyInitialized, isSubscribed, isLoading: notifyLoading, isDenied, toggle: toggleNotify } =
+    usePushNotifications(court.id, userId);
 
   function handleNotifyClick() {
-    if (!isSubscribed && detectPlatform() === "ios" && !isStandalone()) {
+    if (!isSubscribed && platform === "ios" && !standalone) {
+      setContinueToAddSlot(false);
       setShowIOSInstallModal(true);
       return;
     }
     toggleNotify();
   }
 
+  function handleAddSlot() {
+    if (
+      platform === "ios" &&
+      !standalone &&
+      !localStorage.getItem("ios-install-slot-gate-seen")
+    ) {
+      localStorage.setItem("ios-install-slot-gate-seen", "1");
+      setContinueToAddSlot(true);
+      setShowIOSInstallModal(true);
+      return;
+    }
+    setModal({ mode: "add" });
+  }
+
   function handleShare() {
     if (typeof navigator !== "undefined" && "share" in navigator) {
       (navigator as Navigator & { share: (data: object) => Promise<void> })
-        .share({ title: court.name, url: window.location.href })
+        .share({
+          title: court.name,
+          text: `Komm zu ${court.name} auf Court. Auf dem iPhone: Link in Safari öffnen, Teilen → Zum Home-Bildschirm, dann Court über das neue App-Symbol öffnen, um Benachrichtigungen zu erhalten.`,
+          url: window.location.href,
+        })
         .catch(() => {/* dismissed */});
     }
   }
@@ -122,7 +146,7 @@ export default function CourtView({ court }: Props) {
         <h1 className="flex-1 truncate px-1 text-base font-semibold text-gray-900">{court.name}</h1>
 
         {/* Notifications button — always visible in the header */}
-        {isSupported && (
+        {(isSupported || (platform === "ios" && !standalone)) && (
           <button
             onClick={isDenied ? undefined : handleNotifyClick}
             disabled={notifyLoading || isDenied}
@@ -264,6 +288,53 @@ export default function CourtView({ court }: Props) {
         </div>
       )}
 
+      {platform === "ios" && !standalone && (
+        <button
+          type="button"
+          onClick={() => {
+            setContinueToAddSlot(false);
+            setShowIOSInstallModal(true);
+          }}
+          className="flex shrink-0 items-center gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-left"
+        >
+          <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500" aria-hidden="true" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs font-semibold text-amber-950">Browser-Version: Benachrichtigungen nicht verfügbar</span>
+            <span className="block text-xs text-amber-800">Court installieren, damit du Zusagen und gemeinsame Zeiten nicht verpasst.</span>
+          </span>
+          <span className="shrink-0 text-xs font-semibold text-amber-950">Anleitung</span>
+        </button>
+      )}
+
+      {notifyInitialized &&
+        !isSubscribed &&
+        (isSupported || isDenied) &&
+        !(platform === "ios" && !standalone) && (
+        <div
+          className="flex shrink-0 items-center gap-3 border-b border-lime-200 bg-lime-50 px-4 py-2.5"
+          role="status"
+        >
+          <span
+            className={`h-2.5 w-2.5 shrink-0 rounded-full ${isDenied ? "bg-red-500" : "bg-lime-500"}`}
+            aria-hidden="true"
+          />
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs font-semibold text-gray-900">
+              {isDenied ? "Benachrichtigungen sind blockiert" : "Benachrichtigungen sind ausgeschaltet"}
+            </span>
+            <span className="block text-xs text-gray-600">
+              {isDenied ? (
+                standalone && platform === "ios"
+                  ? "Bitte in den iPhone-Einstellungen für Court erlauben."
+                  : "Bitte in den Browser-Einstellungen für Court erlauben."
+              ) : (
+                "Tippe oben auf die Glocke, um sie wieder zu aktivieren."
+              )}
+            </span>
+          </span>
+        </div>
+      )}
+
       {error && (
         <div className="fixed top-16 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 shadow">
           Fehler beim Laden: {error}
@@ -275,7 +346,7 @@ export default function CourtView({ court }: Props) {
         <CourtScheduler
           slots={loading ? [] : slots}
           onDateChange={handleDateChange}
-          onAddSlot={() => setModal({ mode: "add" })}
+          onAddSlot={handleAddSlot}
           userId={userId}
           onSlotTap={(slot) => setModal({ mode: "action", slot })}
           onForeignSlotTap={(slot) => setModal({ mode: "add", copyFrom: slot })}
@@ -327,7 +398,17 @@ export default function CourtView({ court }: Props) {
         />
       )}
       {showIOSInstallModal && (
-        <IOSInstructionsModal onDismiss={() => setShowIOSInstallModal(false)} />
+        <IOSInstructionsModal
+          onDismiss={() => {
+            setShowIOSInstallModal(false);
+            setContinueToAddSlot(false);
+          }}
+          onContinue={continueToAddSlot ? () => {
+            setShowIOSInstallModal(false);
+            setContinueToAddSlot(false);
+            setModal({ mode: "add" });
+          } : undefined}
+        />
       )}
     </div>
   );
