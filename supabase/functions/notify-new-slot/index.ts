@@ -31,6 +31,7 @@ interface SlotRecord {
   date: string;
   start_min: number;
   end_min: number;
+  status: "accepted" | "tentative" | "declined";
 }
 
 interface WebhookPayload {
@@ -59,7 +60,13 @@ Deno.serve(async (req: Request) => {
     return new Response("Invalid JSON body", { status: 400 });
   }
 
-  const { court_id: courtId, user_name: bookedBy, user_id: bookerId, date: slotDate } = payload.record ?? {};
+  const {
+    court_id: courtId,
+    user_name: bookedBy,
+    user_id: bookerId,
+    date: slotDate,
+    status = "accepted",
+  } = payload.record ?? {};
   if (!courtId) {
     return new Response("Missing court_id in record", { status: 400 });
   }
@@ -113,9 +120,24 @@ Deno.serve(async (req: Request) => {
       ? ` von ${toTime(start_min)} bis ${toTime(end_min)}`
       : "";
 
+  const courtLabel = court?.name ?? court?.slug ?? "Court";
+  const notificationText = {
+    accepted: {
+      title: `Neue Zusage in ${courtLabel}`,
+      body: `${bookedBy ?? "Jemand"} ist${datePart(slotDate)}${timeRange} dabei`,
+    },
+    tentative: {
+      title: `Neue unsichere Zusage in ${courtLabel}`,
+      body: `${bookedBy ?? "Jemand"} ist${datePart(slotDate)}${timeRange} vielleicht dabei`,
+    },
+    declined: {
+      title: `Neue Absage in ${courtLabel}`,
+      body: `${bookedBy ?? "Jemand"} ist${datePart(slotDate)}${timeRange} nicht dabei`,
+    },
+  }[status];
+
   const notificationPayload = JSON.stringify({
-    title: `Neuer Slot in ${court?.slug ?? court?.name ?? "Court"}`,
-    body: `${bookedBy ?? "Jemand"} hat${datePart(slotDate)}${timeRange} Zeit`,
+    ...notificationText,
     courtSlug: court?.slug ?? null,
   });
 
@@ -164,12 +186,18 @@ Deno.serve(async (req: Request) => {
   // count > min_people means the threshold was already crossed before → skip.
   let groupSent = 0;
 
-  if (slotDate && payload.record.start_min != null && payload.record.end_min != null) {
+  if (
+    status === "accepted" &&
+    slotDate &&
+    payload.record.start_min != null &&
+    payload.record.end_min != null
+  ) {
     const { data: overlapping } = await supabase
       .from("slots")
       .select("user_id, user_name, start_min, end_min")
       .eq("court_id", courtId)
       .eq("date", slotDate)
+      .eq("status", "accepted")
       .lt("start_min", payload.record.end_min)
       .gt("end_min", payload.record.start_min);
 

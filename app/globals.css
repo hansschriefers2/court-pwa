@@ -25,3 +25,15 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@media (display-mode: standalone) {
+  body {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top);
+  }
+
+  body > .h-dvh,
+  body > main > .h-dvh {
+    height: calc(100dvh - env(safe-area-inset-top));
+  }
+}

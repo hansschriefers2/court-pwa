@@ -136,21 +136,31 @@ export function findGroupRanges(
 }
 
 export function stackSlots(slots: TimeSlot[]): TimeSlot[][] {
-  const sorted = [...slots].sort((a, b) => a.startMin - b.startMin);
   const rows: TimeSlot[][] = [];
-  for (const slot of sorted) {
-    let placed = false;
-    for (const row of rows) {
-      const overlaps = row.some(
-        (s) => s.startMin < slot.endMin && s.endMin > slot.startMin
-      );
-      if (!overlaps) {
-        row.push(slot);
-        placed = true;
-        break;
+
+  for (const status of ['accepted', 'tentative', 'declined'] as const) {
+    const statusRows: TimeSlot[][] = [];
+    const sorted = slots
+      .filter((slot) => slot.status === status)
+      .sort((a, b) => a.startMin - b.startMin);
+
+    for (const slot of sorted) {
+      let placed = false;
+      for (const row of statusRows) {
+        const overlaps = row.some(
+          (s) => s.startMin < slot.endMin && s.endMin > slot.startMin
+        );
+        if (!overlaps) {
+          row.push(slot);
+          placed = true;
+          break;
+        }
       }
+      if (!placed) statusRows.push([slot]);
     }
-    if (!placed) rows.push([slot]);
+
+    rows.push(...statusRows);
   }
+
   return rows;
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
+import { trackInstallEvent } from "@/lib/installTracking";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -20,6 +21,8 @@ const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 interface UsePushNotificationsResult {
   /** Whether the browser supports push and the service worker is ready. */
   isSupported: boolean;
+  /** Whether browser and court subscription state has finished loading. */
+  isInitialized: boolean;
   /** Whether this browser is currently subscribed to push for this court. */
   isSubscribed: boolean;
   /** True while a subscribe/unsubscribe operation is in flight. */
@@ -37,16 +40,13 @@ interface UsePushNotificationsResult {
  * @param courtId  – the court to manage notifications for
  * @param userId   – stable per-device UUID; stored with the subscription so
  *                   the edge function can skip notifying the slot creator
- * @param ready    – pass `!!username`; auto-subscribe only fires once this is true
- *                   (keeps the permission prompt away until the user has a name)
  */
-export function usePushNotifications(courtId: string, userId = "", ready = false): UsePushNotificationsResult {
+export function usePushNotifications(courtId: string, userId = ""): UsePushNotificationsResult {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isDenied, setIsDenied] = useState(false);
-  /** True once the bootstrap async check (SW + DB) has resolved. */
-  const [initialized, setInitialized] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // ── Bootstrap: register SW and check current subscription state ────────────
   useEffect(() => {
@@ -101,7 +101,7 @@ export function usePushNotifications(courtId: string, userId = "", ready = false
       } catch (err) {
         console.error("SW init error:", err);
       } finally {
-        setInitialized(true);
+        setIsInitialized(true);
       }
     })();
   }, [courtId]);
@@ -112,6 +112,7 @@ export function usePushNotifications(courtId: string, userId = "", ready = false
     try {
       const reg = await navigator.serviceWorker.ready;
 
+      trackInstallEvent("notification_requested");
       const permission = await Notification.requestPermission();
       if (permission === "denied") {
         setIsDenied(true);
@@ -137,6 +138,7 @@ export function usePushNotifications(courtId: string, userId = "", ready = false
       }
 
       setIsSubscribed(true);
+  trackInstallEvent("push_subscribed");
     } catch (err) {
       console.error("Subscribe error:", err);
     } finally {
@@ -177,22 +179,5 @@ export function usePushNotifications(courtId: string, userId = "", ready = false
     return subscribe();
   }, [isSubscribed, subscribe, unsubscribe]);
 
-  // ── Auto-subscribe on first court visit ───────────────────────────────────
-  useEffect(() => {
-    // Wait until the username is confirmed (ready) and the DB check is done.
-    if (!initialized || !ready) return;
-    if (!isSupported || isDenied || isSubscribed) return;
-
-    // localStorage flag prevents re-asking on every page load after a dismissal.
-    const key = `notify-asked-${courtId}`;
-    if (localStorage.getItem(key)) return;
-    localStorage.setItem(key, "1");
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- auto-subscribe triggers async state updates inside subscribe()
-    subscribe();
-  // subscribe is stable (useCallback on courtId which doesn't change).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialized, ready, isSupported, isDenied, isSubscribed, courtId]);
-
-  return { isSupported, isSubscribed, isLoading, isDenied, toggle };
+  return { isSupported, isInitialized, isSubscribed, isLoading, isDenied, toggle };
 }

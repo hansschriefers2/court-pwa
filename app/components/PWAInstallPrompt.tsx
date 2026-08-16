@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import Image from "next/image";
+import { trackInstallEvent } from "@/lib/installTracking";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -12,7 +15,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const DISMISSED_KEY = "pwa-install-dismissed";
+const DISMISSED_KEY = "pwa-install-dismissed-this-session";
 
 export function detectPlatform(): "ios" | "android" | null {
   const ua = navigator.userAgent;
@@ -61,7 +64,7 @@ function InstallBanner({ platform, onAction, onDismiss }: BannerProps) {
       role="banner"
       className="fixed bottom-0 inset-x-0 z-50 flex items-center gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg"
     >
-      <img
+      <Image
         src="/icon_1024.png"
         alt=""
         width={40}
@@ -71,8 +74,8 @@ function InstallBanner({ platform, onAction, onDismiss }: BannerProps) {
 
       <p className="flex-1 text-sm font-medium leading-snug text-gray-800">
         {platform === "ios"
-          ? "Zum Homescreen hinzufügen für Push-Benachrichtigungen"
-          : "App installieren für besseren Zugriff"}
+          ? "Keine Zusage verpassen: Court als App installieren"
+          : "Court installieren und schneller zum Platz kommen"}
       </p>
 
       <div className="flex shrink-0 items-center gap-2">
@@ -80,7 +83,7 @@ function InstallBanner({ platform, onAction, onDismiss }: BannerProps) {
           onClick={onAction}
           className="rounded-lg bg-lime-400 px-3 py-1.5 text-sm font-medium text-gray-900 transition-colors hover:bg-lime-300 active:scale-95"
         >
-          {platform === "ios" ? "Anleitung" : "Installieren"}
+          {platform === "ios" ? "So geht’s" : "Installieren"}
         </button>
         <button
           onClick={onDismiss}
@@ -94,7 +97,17 @@ function InstallBanner({ platform, onAction, onDismiss }: BannerProps) {
   );
 }
 
-export function IOSInstructionsModal({ onDismiss }: { onDismiss: () => void }) {
+export function IOSInstructionsModal({
+  onDismiss,
+  onContinue,
+}: {
+  onDismiss: () => void;
+  onContinue?: () => void;
+}) {
+  useEffect(() => {
+    trackInstallEvent("install_help_viewed");
+  }, []);
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center">
       <div
@@ -110,10 +123,10 @@ export function IOSInstructionsModal({ onDismiss }: { onDismiss: () => void }) {
               id="ios-install-title"
               className="text-base font-semibold text-gray-800"
             >
-              Zum Homescreen hinzufügen
+              Court installieren
             </h2>
             <p className="mt-0.5 text-sm text-gray-500">
-              So aktivierst du Push-Benachrichtigungen
+              Erhalte neue Zusagen, Absagen und gemeinsame Zeiten.
             </p>
           </div>
           <button
@@ -123,6 +136,10 @@ export function IOSInstructionsModal({ onDismiss }: { onDismiss: () => void }) {
           >
             <CloseIcon />
           </button>
+        </div>
+
+        <div className="mb-5 rounded-lg border border-lime-200 bg-lime-50 px-3 py-2.5 text-sm text-lime-950">
+          Auf dem iPhone funktionieren Benachrichtigungen nur in der installierten App.
         </div>
 
         {/* Steps */}
@@ -178,14 +195,36 @@ export function IOSInstructionsModal({ onDismiss }: { onDismiss: () => void }) {
               .
             </p>
           </li>
+          <li className="flex items-start gap-3">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-lime-400 text-xs font-bold text-gray-900">
+              4
+            </span>
+            <p className="pt-0.5 text-sm text-gray-700">
+              Öffne Court danach über das{" "}
+              <strong className="font-semibold text-gray-900">
+                neue App-Symbol
+              </strong>
+              . Dort kannst du Benachrichtigungen aktivieren.
+            </p>
+          </li>
         </ol>
 
-        <button
-          onClick={onDismiss}
-          className="mt-6 w-full rounded-lg border border-gray-300 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-        >
-          Schließen
-        </button>
+        <div className="mt-6 space-y-2">
+          <button
+            onClick={onDismiss}
+            className="w-full rounded-lg bg-lime-400 py-2.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-lime-300"
+          >
+            Verstanden
+          </button>
+          {onContinue && (
+            <button
+              onClick={onContinue}
+              className="w-full py-2 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
+            >
+              Ohne Benachrichtigungen fortfahren
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -201,9 +240,10 @@ export function IOSInstructionsModal({ onDismiss }: { onDismiss: () => void }) {
  *            add the app to the Home Screen (required for Push on iOS).
  *
  * Hidden when already running in standalone (installed) mode.
- * Remembers dismissal in localStorage.
+ * Remembers dismissal for the current browser session.
  */
 export default function PWAInstallPrompt() {
+  const pathname = usePathname();
   const [platform, setPlatform] = useState<"ios" | "android" | null>(null);
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
@@ -211,8 +251,14 @@ export default function PWAInstallPrompt() {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    if (isStandalone()) return;
-    if (localStorage.getItem(DISMISSED_KEY)) return;
+    if (isStandalone()) {
+      if (!sessionStorage.getItem("standalone-opened-tracked")) {
+        trackInstallEvent("standalone_opened");
+        sessionStorage.setItem("standalone-opened-tracked", "1");
+      }
+      return;
+    }
+    if (pathname !== "/" || sessionStorage.getItem(DISMISSED_KEY)) return;
 
     const detected = detectPlatform();
     if (!detected) return;
@@ -237,10 +283,10 @@ export default function PWAInstallPrompt() {
         "beforeinstallprompt",
         handleBeforeInstallPrompt
       );
-  }, []);
+  }, [pathname]);
 
   function dismiss() {
-    localStorage.setItem(DISMISSED_KEY, "1");
+    sessionStorage.setItem(DISMISSED_KEY, "1");
     setShowBanner(false);
     setShowModal(false);
   }
