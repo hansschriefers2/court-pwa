@@ -354,6 +354,7 @@ export default function CourtView({ court }: Props) {
           utilizationByDate={utilizationByDate}
           trainings={dailyTrainings}
           onTrainingTap={handleTrainingTap}
+          loading={loading}
         />
       </div>
 
