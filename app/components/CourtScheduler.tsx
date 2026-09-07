@@ -289,13 +289,16 @@ interface CourtSchedulerProps {
   trainings?: RecurringTraining[];
   /** Called when the user taps a training bar. */
   onTrainingTap?: (training: RecurringTraining) => void;
+  /** Whether slots for the current date are still being fetched. */
+  loading?: boolean;
 }
 
-export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId, onSlotTap, onForeignSlotTap, minPeople, utilizationByDate, trainings, onTrainingTap }: CourtSchedulerProps = {}) {
+export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId, onSlotTap, onForeignSlotTap, minPeople, utilizationByDate, trainings, onTrainingTap, loading }: CourtSchedulerProps = {}) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("heute");
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [currentTimeMin, setCurrentTimeMin] = useState(() => toMinutes(new Date()));
 
   const effectiveMinPeople = minPeople ?? 2;
 
@@ -323,17 +326,53 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
     rows.length * (BAR_H + ROW_GAP) +
     ROW_GAP; // total inner height
 
-  // ── Scroll to current time ─────────────────────────────────────────────────
-  function scrollToNow() {
+  // ── Scroll to initial position (next slot → next training → now) ──────────
+  function calculateScrollTarget(): number {
+    const todayStr = localDateStr(new Date());
+    const isToday = localDateStr(selectedDate) === todayStr;
+    const filterMin = isToday ? toMinutes(new Date()) : 0; // Use current time for today, midnight for other dates
+
+    // Priority 1: next start of an existing slot
+    const futureSlots = (slots || []).filter((s) => s.startMin > filterMin);
+    if (futureSlots.length > 0) {
+      const nextSlot = futureSlots.reduce((min, s) => s.startMin < min.startMin ? s : min);
+      return nextSlot.startMin * PX_PER_MIN;
+    }
+
+    // Priority 2: start of a training
+    const futureTrainings = (trainings || []).filter((t) => t.startMin > filterMin);
+    if (futureTrainings.length > 0) {
+      const nextTraining = futureTrainings.reduce((min, t) => t.startMin < min.startMin ? t : min);
+      return nextTraining.startMin * PX_PER_MIN;
+    }
+
+    // Priority 3: current time (or midnight for other dates)
+    return filterMin * PX_PER_MIN;
+  }
+
+  function scrollToInitial() {
     const container = scrollRef.current;
     if (!container) return;
-    const nowMin = toMinutes(new Date());
-    const target = nowMin * PX_PER_MIN - container.clientWidth / 2;
+    const target = calculateScrollTarget() - container.clientWidth / 2;
     container.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
   }
 
+  // Slots for a newly selected date arrive asynchronously (fetched by the
+  // parent), so wait for loading to finish before locking in the scroll.
+  const scrolledDateRef = useRef<string | null>(null);
   useEffect(() => {
-    scrollToNow();
+    if (loading || scrolledDateRef.current === selectedDateStr) return;
+    scrolledDateRef.current = selectedDateStr;
+    scrollToInitial();
+  }, [selectedDateStr, slots, trainings, loading]);
+
+  // ── Update current time every minute ──────────────────────────────────────
+  useEffect(() => {
+    setCurrentTimeMin(toMinutes(new Date()));
+    const interval = setInterval(() => {
+      setCurrentTimeMin(toMinutes(new Date()));
+    }, 60000); // Update every minute
+    return () => clearInterval(interval);
   }, []);
 
   // ── Inner content width (full day + some padding) ─────────────────────────
@@ -349,7 +388,7 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
             setActiveTab("heute");
             setSelectedDate(today);
             setCalendarOpen(false);
-            scrollToNow();
+            scrollToInitial();
             onDateChange?.(today);
           }}
           className={[
@@ -509,6 +548,12 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
 
           {/* Slot bars */}
           <SlotBars rows={rows} userId={userId} onSlotTap={onSlotTap} onForeignSlotTap={onForeignSlotTap} topOffset={slotOffset} />
+
+          {/* Current time indicator */}
+          <div
+            className="absolute top-0 bottom-0 bg-red-500 pointer-events-none opacity-60"
+            style={{ left: currentTimeMin * PX_PER_MIN, width: "2px" }}
+          />
         </div>
       </div>
 
