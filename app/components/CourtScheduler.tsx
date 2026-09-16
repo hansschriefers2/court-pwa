@@ -566,7 +566,8 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
       {/* ── FAB ─────────────────────────────────────────────────── */}
       <button
         onClick={() => onAddSlot?.()}
-        className="absolute bottom-6 right-6 flex h-12 w-12 items-center justify-center rounded-xl border border-lime-400 bg-lime-400 text-2xl text-gray-900 shadow-md hover:bg-lime-300 active:scale-95 transition-transform"
+        className="absolute right-6 flex h-12 w-12 items-center justify-center rounded-xl border border-lime-400 bg-lime-400 text-2xl text-gray-900 shadow-md hover:bg-lime-300 active:scale-95 transition-transform"
+        style={{ bottom: "max(1.5rem, calc(env(safe-area-inset-bottom) + 0.75rem))" }}
         aria-label="Neuen Slot hinzufügen"
       >
         +
