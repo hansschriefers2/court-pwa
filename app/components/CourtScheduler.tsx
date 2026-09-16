@@ -469,7 +469,7 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
       {/* ── Scrollable timeline ─────────────────────────────────── */}
       <div
         ref={scrollRef}
-        className="relative flex-1 overflow-x-auto overflow-y-hidden"
+        className="relative flex-1 overflow-auto"
         style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
       >
         {/* Inner content — fixed pixel width */}
@@ -477,83 +477,89 @@ export default function CourtScheduler({ slots, onDateChange, onAddSlot, userId,
           className="relative"
           style={{ width: innerWidth, height: slotAreaH, minHeight: "100%" }}
         >
-          {/* Hour labels */}
-          {HOURS.map((h) => {
-            const left = h * 60 * PX_PER_MIN;
-            return (
-              <span
-                key={h}
-                className="absolute top-0 -translate-x-1/2 text-xs text-gray-400"
-                style={{ left }}
-              >
-                {String(h).padStart(2, "0")}:00
-              </span>
-            );
-          })}
-
-          {/* Vertical grid lines */}
+          {/* Vertical grid lines — span full height, hidden behind sticky header when scrolled */}
           {HOURS.map((h) => {
             const left = h * 60 * PX_PER_MIN;
             return (
               <div
                 key={h}
-                className="absolute top-4 bottom-0 w-px bg-gray-300"
+                className="absolute top-0 bottom-0 w-px bg-gray-300"
                 style={{ left }}
               />
             );
           })}
 
-          {/* Heatmap — one segment per distinct time interval in the label row */}
-          {heatmapSegments.map((seg, i) => {
-            const isFirst = i === 0 || heatmapSegments[i - 1].end !== seg.start;
-            const isLast = i === heatmapSegments.length - 1 || heatmapSegments[i + 1].start !== seg.end;
-            const opacity = seg.count >= effectiveMinPeople
-              ? 0.8
-              : (seg.count / effectiveMinPeople) * 0.55;
-            const r = 6;
-            const borderRadius = [
-              isFirst ? `${r}px` : "0",
-              isLast  ? `${r}px` : "0",
-              isLast  ? `${r}px` : "0",
-              isFirst ? `${r}px` : "0",
-            ].join(" ");
-            return (
-              <div
-                key={i}
-                className="absolute pointer-events-none flex items-center justify-center overflow-hidden"
-                style={{
-                  left: (seg.start - DAY_START_MIN) * PX_PER_MIN,
-                  width: (seg.end - seg.start) * PX_PER_MIN,
-                  top: 20,
-                  height: 22,
-                  backgroundColor: `rgba(163,230,53,${opacity})`,
-                  borderRadius,
-                }}
-              >
-                <span className="text-[10px] font-medium text-gray-400 leading-none select-none">{seg.count}</span>
-              </div>
-            );
-          })}
-
-          {/* Training bars */}
-          {trainingRows.length > 0 && (
-            <TrainingBars
-              rows={trainingRows}
-              slots={slots || []}
-              userId={userId}
-              onTrainingTap={onTrainingTap}
-              topOffset={TIMELINE_PADDING_TOP}
-            />
-          )}
-
-          {/* Slot bars */}
-          <SlotBars rows={rows} userId={userId} onSlotTap={onSlotTap} onForeignSlotTap={onForeignSlotTap} topOffset={slotOffset} />
-
-          {/* Current time indicator */}
+          {/* Current time indicator — spans full height, hidden behind sticky header when scrolled */}
           <div
             className="absolute top-0 bottom-0 bg-red-500 pointer-events-none opacity-60"
             style={{ left: currentTimeMin * PX_PER_MIN, width: "2px" }}
           />
+
+          {/* Sticky header: hour labels, heatmap and trainings always stay on top */}
+          <div
+            className="sticky top-0 z-10 bg-gray-100"
+            style={{ height: slotOffset }}
+          >
+            {/* Hour labels */}
+            {HOURS.map((h) => {
+              const left = h * 60 * PX_PER_MIN;
+              return (
+                <span
+                  key={h}
+                  className="absolute top-0 -translate-x-1/2 text-xs text-gray-400"
+                  style={{ left }}
+                >
+                  {String(h).padStart(2, "0")}:00
+                </span>
+              );
+            })}
+
+            {/* Heatmap — one segment per distinct time interval in the label row */}
+            {heatmapSegments.map((seg, i) => {
+              const isFirst = i === 0 || heatmapSegments[i - 1].end !== seg.start;
+              const isLast = i === heatmapSegments.length - 1 || heatmapSegments[i + 1].start !== seg.end;
+              const opacity = seg.count >= effectiveMinPeople
+                ? 0.8
+                : (seg.count / effectiveMinPeople) * 0.55;
+              const r = 6;
+              const borderRadius = [
+                isFirst ? `${r}px` : "0",
+                isLast  ? `${r}px` : "0",
+                isLast  ? `${r}px` : "0",
+                isFirst ? `${r}px` : "0",
+              ].join(" ");
+              return (
+                <div
+                  key={i}
+                  className="absolute pointer-events-none flex items-center justify-center overflow-hidden"
+                  style={{
+                    left: (seg.start - DAY_START_MIN) * PX_PER_MIN,
+                    width: (seg.end - seg.start) * PX_PER_MIN,
+                    top: 20,
+                    height: 22,
+                    backgroundColor: `rgba(163,230,53,${opacity})`,
+                    borderRadius,
+                  }}
+                >
+                  <span className="text-[10px] font-medium text-gray-400 leading-none select-none">{seg.count}</span>
+                </div>
+              );
+            })}
+
+            {/* Training bars */}
+            {trainingRows.length > 0 && (
+              <TrainingBars
+                rows={trainingRows}
+                slots={slots || []}
+                userId={userId}
+                onTrainingTap={onTrainingTap}
+                topOffset={TIMELINE_PADDING_TOP}
+              />
+            )}
+          </div>
+
+          {/* Slot bars */}
+          <SlotBars rows={rows} userId={userId} onSlotTap={onSlotTap} onForeignSlotTap={onForeignSlotTap} topOffset={slotOffset} />
         </div>
       </div>
 
