@@ -38,7 +38,9 @@ function rowToSlot(row: SlotRow): TimeSlot {
  */
 export function useSlots(courtId: string, username: string | null) {
   const [slots, setSlots] = useState<TimeSlot[]>([]);
-  const [loading, setLoading] = useState(false);
+  // Starts true so CourtScheduler doesn't lock in an initial scroll target
+  // before the first fetch (triggered once `username` resolves) completes.
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
 
