@@ -33,3 +33,7 @@ npm test
 ```
 
 CI also expects `NEXT_PUBLIC_VAPID_PUBLIC_KEY` for push-notification coverage.
+
+## Native App (Flutter)
+
+Im Ordner [`flutter_app/`](flutter_app/README.md) liegt eine Flutter-Version für Android und iOS, die dasselbe Supabase-Backend nutzt. Push-Benachrichtigungen laufen dort über Firebase Cloud Messaging; die Edge Functions schicken an beide (Web-Push und FCM). Einrichtung siehe `flutter_app/README.md`.

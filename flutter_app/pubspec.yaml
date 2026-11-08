@@ -1,0 +1,43 @@
+name: court
+description: "Court – Verfügbarkeiten teilen und gemeinsame Court-Zeiten finden."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  supabase_flutter: ^2.9.1
+  shared_preferences: ^2.5.3
+  uuid: ^4.5.1
+  go_router: ^16.0.0
+  firebase_core: ^4.0.0
+  firebase_messaging: ^16.0.0
+  share_plus: ^11.0.0
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon.png
+
+# `dart run flutter_launcher_icons` erzeugt die App-Icons für Android und iOS.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/icon.png
+  remove_alpha_ios: true
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: assets/icon.png

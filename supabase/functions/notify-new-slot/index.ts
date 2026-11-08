@@ -9,9 +9,11 @@
 //   VAPID_SUBJECT      — e.g. "mailto:you@example.com"
 //   SUPABASE_URL       — auto-injected by Supabase
 //   SUPABASE_SERVICE_ROLE_KEY — auto-injected by Supabase
+//   FCM_SERVICE_ACCOUNT — optional, enables push to the native app (see _shared/fcm.ts)
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3";
+import { sendFcm } from "../_shared/fcm.ts";
 
 // ─── VAPID setup ──────────────────────────────────────────────────────────────
 
@@ -177,8 +179,21 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  const sent = subs.length - staleIds.length;
+  const sent = (subs?.length ?? 0) - staleIds.length;
   console.log(`Notified ${sent} subscriber(s), removed ${staleIds.length} stale.`);
+
+  // ─── Native app (FCM) ─────────────────────────────────────────────────────
+  const { data: fcmRows, error: fcmError } = await supabase
+    .from("fcm_tokens")
+    .select("id, token")
+    .eq("court_id", courtId)
+    .neq("user_id", bookerId ?? "");
+  if (fcmError) console.error("DB error fetching FCM tokens:", fcmError);
+  const fcm = await sendFcm(supabase, fcmRows ?? [], {
+    ...notificationText,
+    courtSlug: court?.slug ?? null,
+  });
+  console.log(`FCM: notified ${fcm.sent} device(s), removed ${fcm.stale} stale.`);
 
   // ─── Group availability check ─────────────────────────────────────────────
   // When exactly min_people distinct users have overlapping slots, the threshold
@@ -217,6 +232,20 @@ Deno.serve(async (req: Request) => {
         if (intersectionStart < intersectionEnd) {
           const groupUserIds = distinctUsers.map((u) => u.user_id);
 
+          const groupMessage = {
+            title: `Gemeinsamer Slot in ${court?.name ?? court?.slug ?? "Court"}`,
+            body: `${minPeople} Personen haben${datePart(slotDate)} von ${toTime(intersectionStart)} bis ${toTime(intersectionEnd)} gleichzeitig Zeit!`,
+            courtSlug: court?.slug ?? null,
+          };
+
+          const { data: groupFcmRows } = await supabase
+            .from("fcm_tokens")
+            .select("id, token")
+            .eq("court_id", courtId)
+            .in("user_id", groupUserIds);
+          const groupFcm = await sendFcm(supabase, groupFcmRows ?? [], groupMessage);
+          groupSent += groupFcm.sent;
+
           const { data: groupSubs } = await supabase
             .from("subscriptions")
             .select("id, user_id, subscription_json")
@@ -224,11 +253,7 @@ Deno.serve(async (req: Request) => {
             .in("user_id", groupUserIds);
 
           if (groupSubs?.length) {
-            const groupPayload = JSON.stringify({
-              title: `Gemeinsamer Slot in ${court?.name ?? court?.slug ?? "Court"}`,
-              body: `${minPeople} Personen haben${datePart(slotDate)} von ${toTime(intersectionStart)} bis ${toTime(intersectionEnd)} gleichzeitig Zeit!`,
-              courtSlug: court?.slug ?? null,
-            });
+            const groupPayload = JSON.stringify(groupMessage);
 
             const staleGroupIds: string[] = [];
             await Promise.allSettled(
@@ -263,7 +288,7 @@ Deno.serve(async (req: Request) => {
   }
 
   return new Response(
-    JSON.stringify({ sent, stale: staleIds.length, groupSent }),
+    JSON.stringify({ sent, stale: staleIds.length, fcmSent: fcm.sent, fcmStale: fcm.stale, groupSent }),
     { headers: { "Content-Type": "application/json" } },
   );
 });
