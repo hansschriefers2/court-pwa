@@ -9,9 +9,11 @@
 //   VAPID_SUBJECT      — e.g. "mailto:you@example.com"
 //   SUPABASE_URL       — auto-injected by Supabase
 //   SUPABASE_SERVICE_ROLE_KEY — auto-injected by Supabase
+//   FCM_SERVICE_ACCOUNT — optional, enables push to the native app (see _shared/fcm.ts)
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3";
+import { sendFcm } from "../_shared/fcm.ts";
 
 // ─── VAPID setup ──────────────────────────────────────────────────────────────
 
@@ -135,8 +137,23 @@ Deno.serve(async (req: Request) => {
   const sent = (subs?.length ?? 0) - staleIds.length;
   console.log(`Notified ${sent} subscriber(s), removed ${staleIds.length} stale.`);
 
+  // ─── Native app (FCM) ─────────────────────────────────────────────────────
+  const { data: fcmRows, error: fcmError } = await supabase
+    .from("fcm_tokens")
+    .select("id, token")
+    .eq("court_id", courtId)
+    .neq("user_id", posterId ?? "");
+  if (fcmError) console.error("DB error fetching FCM tokens:", fcmError);
+  const fcm = await sendFcm(supabase, fcmRows ?? [], {
+    title: `Neue Nachricht in ${courtLabel}`,
+    body: `${username ?? "Jemand"}: ${message}`,
+    courtSlug,
+    url: courtSlug ? `/${courtSlug}/pinnwand` : "/",
+  });
+  console.log(`FCM: notified ${fcm.sent} device(s), removed ${fcm.stale} stale.`);
+
   return new Response(
-    JSON.stringify({ sent, stale: staleIds.length }),
+    JSON.stringify({ sent, stale: staleIds.length, fcmSent: fcm.sent, fcmStale: fcm.stale }),
     { headers: { "Content-Type": "application/json" } },
   );
 });
